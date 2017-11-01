@@ -20,13 +20,13 @@ deploy:
   provider: releases
   api_key:
     # See https://docs.travis-ci.com/user/deployment/releases/#Authenticating-with-an-OAuth-token
-    secure: B4Yl81oyddyE2TQVmVggOgZFN3aZTIt5XjV4mQsy91ctqRxQskIa4nl+vLpNRDHMS+6P9cbEfWdYRXamrOm3PsPOm6KQcoekKbmHH45PdKhHkMbAiUxjXW/QTlufeEPs8ugplAv8anj/d2cb7D2mfzjP6PY1QIbCPbYJGGC0O/zeYHOUxwODyYZQzO6xsBQfOQdHwoT4D/2c1Oo6Mz31j8hxXXJZgXGtEoYjJnxZVHdU1Y7irs8CWlwW7pAjTjEs4cpBVCaM/3W2VQ1I/bW0ZGmZYv8g4Av3uBA6SypAXrqo1yzB2teOUPtxP/WvDzOl/wfZnLQH0u/6uaCt3/XInIYINY8F/Tck31rErPeCrV520WbGebG/ou2uzCHei9cl138doO8qemRf544nrCoSxz39gC2EMcl6PVH3mKpEnj8yLtXuqrfT36mKEzAILb0PQXNFD9Ccx48dGCVa86AZ2zxPnWO9s+veZN4/i9IjW+8sdTIekX96KkAadC/FmMMltbbKHnudEKh2wUujO1ra+OlF6GO7y5E0fEQ8/2C5uwnyMMFwrPAw6snf3pM7z8cEcC/KaqnqjGrOlQ1ze8Ra4NXuMNLwIqquQYxcBx6pJcGU+FavWTFflowzWlTmr5qHj5j3SoRmHqrjEezhHqDr/pvPZp4MNRuJMUOHtcNP4Y4=
+    secure: WESZx6KyFGe0D/JJ5xUwcFR2xQ8qr4rPogclCsDIL3w8SbKmzo8aiKWY/GIu0Ld50G1f1HPfpwTl4fWqSz2G4D9AVkHCpfy84vtwUWrtJ0HnOuPT0vTrxkNjy4tkKf5pJXTW5Mq0B2W0TrxXooEZwGax/3bdF9lGRvR9xtgWsyhVG5nBjxA8d9pNLIGV3zRZDMuCyR932f8WZxEWtbPD18fl/htzbOf85fJAo/eaiU/nuE/c/8F3D14xOjVevJebyyIv2Ykd6t9XePn6KEjifhQUNm9RIhHo/czAJWy+UPOFPUjxH7vT/rFkH9D2NuzLJXsVYjtien/Tpe3sh0IyOPjeKUUpu6dRwQS7RVRcbyy5nre1FrIZV4BCxs85b9YN0EkCcTkuw24l39g+9wwniM+1vzNAGZtHLRlUa0cGzFQL4TsYJrUOLrnuwWdV9L31FSY0bHDCsLqjs6AhHL5TemaDD+9WSQDhxQIgdocDoG8dn4J5OK5buNgvBj11PRtd4DGPzFtjjYqhengUS7iGyluIQ30VaBIUkQgYiuBKC/Yr7W6vSTfTuLeyyLYb0aBY9PO9pBE+sz8feHSIixLYoouRPcbc745c9ICRXfw9Ew/xVrLp84+WGtgIBagdKvwUz8uYVKjPjBUucIJZgZMHoUrAQW7rO2lbSMyr/kRfl/Q=
   file_glob: true
   file: _build/prod/rel/epoch/epoch-*-*.tar.gz
   skip_cleanup: true
   on:
     # See https://docs.travis-ci.com/user/deployment#Conditional-Releases-with-on%3A
-    repo: aeternity/epoch
+    repo: velzevur/epoch
     tags: true
     all_branches: true # Workaround for Travis - see https://github.com/travis-ci/travis-ci/issues/1675#issuecomment-37851765
     condition: "${JOB:?} = package"

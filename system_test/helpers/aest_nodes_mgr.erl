@@ -13,7 +13,7 @@
 
 %% API
 -export([start/2, stop/0]).
--export([cleanup/0, dump_logs/0, setup_nodes/1, start_node/1, stop_node/2, 
+-export([cleanup/0, dump_logs/0, setup_nodes/1, start_node/1, stop_node/2,
          get_service_address/2]).
 
 %% gen_server callbacks
@@ -67,7 +67,7 @@ get_service_address(NodeName, Service) ->
 %=== BEHAVIOUR GEN_SERVER CALLBACK FUNCTIONS ===================================
 
 init([Backends, EnvMap]) ->
-    Opts = EnvMap#{test_id => maps:get(test_id, EnvMap, <<"quickcheck">>), 
+    Opts = EnvMap#{test_id => maps:get(test_id, EnvMap, <<"quickcheck">>),
                    log_fun => maps:get(log_fun, EnvMap, undefined)},
     InitialState = Opts,
     %% why keeping dirs twice??
@@ -148,7 +148,7 @@ mgr_get_node_pubkey(NodeName, #{nodes := Nodes}) ->
     Mod:get_node_pubkey(NodeState).
 
 mgr_start_node(NodeName, #{nodes := Nodes} = State) ->
-    {Mod, NodeState} = maps:get(NodeName, Nodes),
+    #{NodeName := {Mod, NodeState}} = Nodes,
     NodeState2 = Mod:start_node(NodeState),
     State#{nodes := Nodes#{NodeName := {Mod, NodeState2}}}.
 

@@ -258,8 +258,6 @@ wait_for_value({height, MinHeight}, NodeNames, Timeout, Ctx) ->
         [MinHeight, NodeNames, Duration]
     ).
 
-
-
 %=== INTERNAL FUNCTIONS ========================================================
 
 log(#{log_fun := undefined}, _Fmt, _Args) -> ok;

@@ -11,7 +11,8 @@
 -export([new_node_joins_network/1,
          docker_keeps_data/1,
          stop_and_continue_sync/1,
-         net_split_recovery/1
+         net_split_recovery/1,
+         quick_start_stop/1
         ]).
 
 -import(aest_nodes, [
@@ -116,6 +117,7 @@ all() -> [
     , docker_keeps_data
     , net_split_recovery
     , stop_and_continue_sync
+    , quick_start_stop
 ].
 
 init_per_testcase(_TC, Config) ->
@@ -288,7 +290,7 @@ stop_and_continue_sync(Cfg) ->
     ct:log("Node 2 ready to go"),
 
     %% we are fetching blocks stop node1 now
-    stop_node(old_node1, 2000, Cfg),
+    kill_node(old_node1, Cfg),
     Top2 = request(old_node2, [v2, 'top'], #{}, Cfg),
     ct:log("Node 2 top: ~p~n", [Top2]),
     Height = maps:get(height, Top2),
@@ -389,6 +391,16 @@ net_split_recovery(Cfg) ->
     ?assertEqual(D1, D4),
 
     ok.
+
+quick_start_stop(Cfg) ->
+    setup_nodes([?OLD_NODE1, ?OLD_NODE2], Cfg),
+    start_node(old_node2, Cfg),
+    start_node(old_node1, Cfg),
+    stop_node(old_node2, 2000, Cfg),
+    timer:sleep(2000),
+    start_node(old_node2, Cfg),
+    ok.
+  
 
 %=== INTERNAL FUNCTIONS ========================================================
 

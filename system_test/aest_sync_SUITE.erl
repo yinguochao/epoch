@@ -13,7 +13,8 @@
     docker_keeps_data/1,
     stop_and_continue_sync/1,
     net_split_recovery/1,
-    sync_speed/1
+    sync_speed/1,
+    quick_start_stop/1
 ]).
 
 -import(aest_nodes, [
@@ -120,7 +121,8 @@ all() -> [
     docker_keeps_data,
     stop_and_continue_sync,
     net_split_recovery,
-    sync_speed
+    sync_speed,
+    quick_start_stop
 ].
 
 init_per_testcase(_TC, Config) ->
@@ -393,7 +395,7 @@ net_split_recovery(Cfg) ->
     ?assertEqual(D1, D3),
     ?assertEqual(D1, D4),
 
-    ok.  
+    ok.
 
 sync_speed(Cfg) ->
     InitialNodes = [node_name(I) || I <- lists:seq(1, 4)],
@@ -439,6 +441,15 @@ sync_speed(Cfg) ->
     AllBlocks = InitialBlocks ++ [N5Block, N6Block],
 
     [?assertEqual(A, B) || A <- AllBlocks, B <- AllBlocks, A =/= B].
+
+quick_start_stop(Cfg) ->
+    setup_nodes([?OLD_NODE1, ?OLD_NODE2], Cfg),
+    start_node(old_node2, Cfg),
+    start_node(old_node1, Cfg),
+    stop_node(old_node2, 2000, Cfg),
+    timer:sleep(2000),
+    start_node(old_node2, Cfg),
+    ok.
 
 %=== INTERNAL FUNCTIONS ========================================================
 

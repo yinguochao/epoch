@@ -133,7 +133,7 @@ init_per_testcase(_TC, Config) ->
                           | Config]).
 
 end_per_testcase(_TC, Config) ->
-    aest_nodes:ct_cleanup(Config).
+    ok = aest_nodes:ct_cleanup(Config).
 
 %=== TEST CASES ================================================================
 

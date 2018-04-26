@@ -75,8 +75,9 @@ init([Backends, EnvMap]) ->
                        nodes => #{} }}.
 
 handle_call(cleanup, _From, State) ->
+    Result = mgr_scan_logs_for_errors(State),
     CleanState = mgr_cleanup(State),
-    {reply, ok, CleanState};
+    {reply, Result, CleanState};
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
 handle_call(dump_logs, _From, #{nodes := Nodes} = State) ->
@@ -124,8 +125,14 @@ code_change(_OldVsn, State, _Extra) ->
 
 %=== INTERNAL FUNCTIONS ========================================================
 
+log(LogFun, Format, Params) when is_function(LogFun) ->
+    LogFun(Format, Params);
+log(#{log_fun := LogFun}, Format, Params) when is_function(LogFun) ->
+    LogFun(Format, Params);
+log(_, _, _) -> ok.
+
 mgr_cleanup(State) ->
-    %% Node cleanup can be disabled for debugging
+    %% Node cleanup can be disabled for debugging,
     %% then we keep dockers running
     case os:getenv("EPOCH_DISABLE_NODE_CLEANUP") of
         Value when Value =:= "true"; Value =:= "1" ->
@@ -138,6 +145,27 @@ mgr_cleanup(State) ->
             [ Backend:stop(BackendState) || {Backend, BackendState} <- maps:get(backends, State) ],
             State#{backends => [], nodes => #{}}
     end.
+
+mgr_scan_logs_for_errors(#{nodes := Nodes} = State) ->
+    maps:fold(fun(NodeName, {Backend, NodeState}, Result) ->
+        LogPath = Backend:get_log_path(NodeState),
+        LogFile = binary_to_list(filename:join(LogPath, "epoch.log")),
+        case filelib:is_file(LogFile) of
+            false -> Result;
+            true ->
+                Command = "grep '\\[error\\]' '" ++ LogFile ++ "'"
+                       %% Ingore errors from watchdog/eper due to dead process
+                       ++ "| grep -v 'emulator Error in process <[0-9.]*> "
+                       ++ "on node epoch@localhost with exit value'",
+                case os:cmd(Command) of
+                    "" -> Result;
+                    ErrorLines ->
+                        log(State, "Node ~p's logs contains errors:~n~s",
+                            [NodeName, ErrorLines]),
+                    {error, log_errors}
+                end
+        end
+    end, ok, Nodes).
 
 mgr_get_service_address(NodeName, Service, #{nodes := Nodes}) ->
     #{NodeName := {Mod, NodeState}} = Nodes,

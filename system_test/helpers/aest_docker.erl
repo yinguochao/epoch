@@ -20,6 +20,7 @@
 -export([run_cmd_in_node_dir/3]).
 -export([connect_node/2]).
 -export([disconnect_node/2]).
+-export([get_log_path/1]).
 
 %=== MACROS ====================================================================
 
@@ -76,7 +77,8 @@
     privkey := binary(),        % Private part of the peer key
     exposed_ports := #{service_label() => pos_integer()},
     local_ports := #{service_label() => pos_integer()},
-    sockets := [gen_tcp:socket()] % Reserved socket to prevent port clash
+    sockets := [gen_tcp:socket()], % Reserved socket to prevent port clash
+    log_path := binary()        % Path where the node logs are
 }.
 
 -type start_options() :: #{
@@ -260,7 +262,8 @@ setup_node(Spec, BackendState) ->
     NodeState#{
         container_name => Hostname,
         container_id => ContId,
-        config_path => ConfigFilePath
+        config_path => ConfigFilePath,
+        log_path => LogPath
     }.
 
 -spec delete_node(node_state()) -> ok.
@@ -366,6 +369,10 @@ disconnect_node(NetName, NodeState) ->
     log(NodeState, "Container [~s] disconnected from network [~s]",
         [ContId, NetId]),
     NodeState.
+
+-spec get_log_path(node_state()) -> binary().
+get_log_path(#{log_path := LogPath}) -> LogPath.
+
 
 %=== INTERNAL FUNCTIONS ========================================================
 

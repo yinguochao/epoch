@@ -258,14 +258,11 @@ init_per_group(hard_fork_new_chain_with_tx, Config) ->
 init_per_group(_, Config) -> Config.
 
 end_per_group(upgrade_flow_smoke_test, Config) ->
-    aest_nodes:ct_cleanup(Config),
-    ok;
+    ok = aest_nodes:ct_cleanup(Config);
 end_per_group(hard_fork_old_chain_with_tx, Config) ->
-    aest_nodes:ct_cleanup(Config),
-    ok;
+    ok = aest_nodes:ct_cleanup(Config);
 end_per_group(hard_fork_new_chain_with_tx, Config) ->
-    aest_nodes:ct_cleanup(Config),
-    ok;
+    ok = aest_nodes:ct_cleanup(Config);
 end_per_group(_, _) -> ok.
 
 init_per_testcase(TC, Config) when
@@ -281,7 +278,7 @@ end_per_testcase(TC, Config) when
       TC =:= restore_db_backup_on_old_node;
       TC =:= old_node_can_receive_chain_from_other_old_node;
       TC =:= new_node_accepts_long_old_chain_from_old_node_up_to_height_of_new_protocol ->
-    aest_nodes:ct_cleanup(Config);
+    ok = aest_nodes:ct_cleanup(Config);
 end_per_testcase(_, _) -> ok.
 
 %=== TEST CASES ================================================================

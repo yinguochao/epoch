@@ -97,14 +97,16 @@ ct_setup(Config) ->
     end.
 
 %% @doc Stops the node manager and all the nodes that were started.
--spec ct_cleanup(test_ctx()) -> ok.
+%% If the nodes log contains errors it will print the error lines and return
+%% `{error, log_errors}.
+-spec ct_cleanup(test_ctx()) -> ok | {error, term()}.
 ct_cleanup(Ctx) ->
     Pid = ctx2pid(Ctx),
     call(Pid, dump_logs),
-    call(Pid, cleanup),
+    Result = call(Pid, cleanup),
     call(Pid, stop),
     wait_for_exit(Pid, 120000),
-    ok.
+    Result.
 
 %=== QICKCHECK API FUNCTIONS ===================================================
 
@@ -118,13 +120,15 @@ eqc_setup(DataDir, TempDir) ->
     end.
 
 %% @doc Stops the node manager for QuickCheck tests.
--spec eqc_cleanup(test_ctx()) -> ok.
+-spec eqc_cleanup(test_ctx()) -> ok | {error, term()}.
+%% If the nodes log contains errors it will print the error lines and return
+%% `{error, log_errors}.
 eqc_cleanup(Ctx) ->
     Pid = ctx2pid(Ctx),
-    call(Pid, cleanup),
+    Result = call(Pid, cleanup),
     call(Pid, stop),
     wait_for_exit(Pid, 120000),
-    ok.
+    Result.
 
 %=== GENERIC API FUNCTIONS =====================================================
 

@@ -498,8 +498,8 @@ sync_drop_peer(Cfg) ->
 %% decides it is on a shorter fork and switches to the longer fork.
 sync_with_forking(Cfg) ->
     Length = 10,
-    DiffLength = 50,
-    ForkLength = 200,
+    DiffLength = 150,
+    ForkLength = 400,
     SyncLength = 300,
 
     setup_nodes([?NODE1, ?NODE2, ?NODE3], Cfg),
@@ -524,12 +524,12 @@ sync_with_forking(Cfg) ->
                     ForkLength * ?MINING_TIMEOUT, Cfg), 
     A150 = request(node1, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
     A300 = request(node1, [v2, 'block-by-height'], #{height => ForkLength}, Cfg),
-
     stop_node(node1, infinity, Cfg),
 
     start_node(node2, Cfg),
 
-    %% Make main chain at least 50 blocks ahead
+    %% Make main chain at least DiffLength blocks ahead
+    %% that is a fork that will take a bit of time to sync with
     wait_for_value({height, DiffLength}, [node2], DiffLength * ?MINING_TIMEOUT, Cfg),
     B150 = request(node2, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
 
@@ -537,18 +537,13 @@ sync_with_forking(Cfg) ->
     ?assertNotEqual(A150, B150),
 
     start_node(node3, Cfg),
-
-    wait_for_value({height, DiffLength}, [node3], DiffLength * ?MINING_TIMEOUT, Cfg),
-    C150 = request(node3, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
-
-    %% Syncing against the shorter fork
-    ?assertEqual(B150, C150),
+    timer:sleep(2000),
 
     %% Let node2 switch fork by sync with node1
     start_node(node1, Cfg), 
 
     wait_for_value({height, ForkLength}, [node1, node2, node3],
-                    Length * ?MINING_TIMEOUT, Cfg),
+                    ForkLength * ?MINING_TIMEOUT, Cfg),
 
     A450 = request(node1, [v2, 'block-by-height'], #{height => ForkLength}, Cfg),
     B450 = request(node3, [v2, 'block-by-height'], #{height => ForkLength}, Cfg),

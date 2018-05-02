@@ -13,7 +13,8 @@
     docker_keeps_data/1,
     stop_and_continue_sync/1,
     net_split_recovery/1,
-    sync_speed/1
+    sync_speed/1,
+    sync_with_forking/1
 ]).
 
 -import(aest_nodes, [
@@ -78,9 +79,6 @@
     networks => [net1]
 }).
 
-%% By default, this node only connects to network `net1` even though
-%% it has a `net2_node2` as a peer. It means that if it is not connected
-%% explicitly to `net2` it will not be able to connect to `net2_node2`.
 -define(NET1_NODE2, #{
     name    => net1_node2,
     peers   => [net1_node1, net2_node2],
@@ -89,9 +87,6 @@
     networks => [net1]
 }).
 
-%% By default, this node only connects to network `net2` even though
-%% it has a `net1_node1` as a peer. It means that if it is not connected
-%% explicitly to `net1` it will not be able to connect to `net1_node1`.
 -define(NET2_NODE1, #{
     name    => net2_node1,
     peers   => [net1_node1, net2_node2],
@@ -100,9 +95,6 @@
     networks => [net2]
 }).
 
-%% By default, this node only connects to network `net2` even though
-%% it has a `net1_node2` as a peer. It means that if it is not connected
-%% explicitly to `net1` it will not be able to connect to `net1_node2`.
 -define(NET2_NODE2, #{
     name    => net2_node2,
     peers   => [net1_node2, net2_node1],
@@ -120,7 +112,8 @@ all() -> [
     docker_keeps_data,
     stop_and_continue_sync,
     net_split_recovery,
-    sync_speed
+    sync_speed,
+    sync_with_forking
 ].
 
 init_per_testcase(_TC, Config) ->
@@ -439,6 +432,75 @@ sync_speed(Cfg) ->
     AllBlocks = InitialBlocks ++ [N5Block, N6Block],
 
     [?assertEqual(A, B) || A <- AllBlocks, B <- AllBlocks, A =/= B].
+
+%% Test that we can sync with a node that during this sync process 
+%% decides it is on a shorter fork and switches to the longer fork.
+sync_with_forking(Cfg) ->
+    Length = 100,
+    DiffLength = 150,
+    ForkLength = 300,
+    SyncLength = 400,
+
+    setup_nodes([?NET1_NODE1, ?NET1_NODE2, ?NET2_NODE1, ?NET2_NODE2], Cfg),
+    start_node(net1_node1, Cfg),
+    start_node(net2_node1, Cfg),
+    connect_node(net1_node1, net2, Cfg),
+    connect_node(net2_node1, net1, Cfg),
+
+    %% Starts with a decent chain
+
+    wait_for_value({height, Length}, [net1_node1, net2_node1],
+                    Length * ?MINING_TIMEOUT, Cfg),
+
+    A100 = request(net1_node1, [v2, 'block-by-height'], #{height => Length}, Cfg),
+    B100 = request(net2_node1, [v2, 'block-by-height'], #{height => Length}, Cfg),
+
+    %% Check that the chains agree so far
+    ?assertEqual(A100, B100),
+
+    %% Provoke a fork by isolating the nodes
+    disconnect_node(net1_node1, net2, Cfg),
+    disconnect_node(net2_node1, net1, Cfg),
+
+    wait_for_value({height, ForkLength}, [net2_node1, net1_node1],
+                    ForkLength * ?MINING_TIMEOUT, Cfg), 
+
+    stop_node(net2_node1, infinity, Cfg),
+
+    %% Make main chain at least 50 blocks ahead
+    wait_for_value({height, ForkLength + 50}, [net1_node1], 50 * ?MINING_TIMEOUT, Cfg),
+    start_node(net2_node1, Cfg),
+
+    A150 = request(net1_node1, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
+    B150 = request(net2_node1, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
+
+    %% Different at height DiffLength
+    ?assertNotEqual(A150, B150),
+    
+    start_node(net2_node2, Cfg),
+    wait_for_value({height, DiffLength}, [net2_node2], DiffLength * ?MINING_TIMEOUT, Cfg),
+
+    C150 = request(net2_node2, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
+
+    %% Agree on the shorter fork
+    ?assertEqual(B150, C150),
+
+    %% Join A and B to have B switch fork to the longer chain of A
+    connect_node(net1_node1, net2, Cfg),
+    connect_node(net2_node1, net1, Cfg),
+    %% connect_node(net2_node2, net1, Cfg),
+
+    wait_for_value({height, SyncLength}, [net1_node1, net2_node1, net2_node2],
+                    Length * ?MINING_TIMEOUT, Cfg),
+
+    A450 = request(net1_node1, [v2, 'block-by-height'], #{height => SyncLength}, Cfg),
+    B450 = request(net2_node1, [v2, 'block-by-height'], #{height => SyncLength}, Cfg),
+    C450 = request(net2_node2, [v2, 'block-by-height'], #{height => SyncLength}, Cfg),
+
+    %% Check that the chain merged
+    ?assertEqual(A450, B450),
+    ?assertEqual(B450, C450),
+    ok.  
 
 %=== INTERNAL FUNCTIONS ========================================================
 

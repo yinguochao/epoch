@@ -103,7 +103,26 @@
     networks => [net2]
 }).
 
+-define(NODE1, #{
+    name    => node1,
+    peers   => [node2],
+    backend => aest_docker,
+    source  => {pull, "aeternity/epoch:local"}
+}).
 
+-define(NODE2, #{
+    name    => node2,
+    peers   => [node1, node3],
+    backend => aest_docker,
+    source  => {pull, "aeternity/epoch:local"}
+}).
+
+-define(NODE3, #{
+    name    => node3,
+    peers   => [node2],
+    backend => aest_docker,
+    source  => {pull, "aeternity/epoch:local"}
+}).
 
 %=== COMMON TEST FUNCTIONS =====================================================
 
@@ -433,13 +452,12 @@ sync_speed(Cfg) ->
 
     [?assertEqual(A, B) || A <- AllBlocks, B <- AllBlocks, A =/= B].
 
-%% Test that we can sync with a node that during this sync process 
-%% decides it is on a shorter fork and switches to the longer fork.
-sync_with_forking(Cfg) ->
-    Length = 100,
-    DiffLength = 150,
-    ForkLength = 300,
-    SyncLength = 400,
+%% Provoke strange ping error and other errors by wrongly disconnecting peers
+sync_drop_peer(Cfg) ->
+    Length = 10,
+    DiffLength = 50,
+    ForkLength = 200,
+    SyncLength = 300,
 
     setup_nodes([?NET1_NODE1, ?NET1_NODE2, ?NET2_NODE1, ?NET2_NODE2], Cfg),
     start_node(net1_node1, Cfg),
@@ -469,37 +487,77 @@ sync_with_forking(Cfg) ->
 
     %% Make main chain at least 50 blocks ahead
     wait_for_value({height, ForkLength + 50}, [net1_node1], 50 * ?MINING_TIMEOUT, Cfg),
-    start_node(net2_node1, Cfg),
-
     A150 = request(net1_node1, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
-    B150 = request(net2_node1, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
+    ct:log("Node A at ~p is ~p", [DiffLength, A150]),
+
+  start_node(net2_node1, Cfg),
+  ok.
+
+
+%% Test that we can sync with a node that during this sync process 
+%% decides it is on a shorter fork and switches to the longer fork.
+sync_with_forking(Cfg) ->
+    Length = 10,
+    DiffLength = 50,
+    ForkLength = 200,
+    SyncLength = 300,
+
+    setup_nodes([?NODE1, ?NODE2, ?NODE3], Cfg),
+    start_node(node1, Cfg),
+    start_node(node2, Cfg),
+
+    %% Starts with a common prefix
+
+    wait_for_value({height, Length}, [node1, node2],
+                    Length * ?MINING_TIMEOUT, Cfg),
+
+    A100 = request(node1, [v2, 'block-by-height'], #{height => Length}, Cfg),
+    B100 = request(node2, [v2, 'block-by-height'], #{height => Length}, Cfg),
+
+    %% Check that the chains agree so far
+    ?assertEqual(A100, B100),
+
+    %% Provoke a fork by isolating the nodes taking away
+    stop_node(node2, infinity, Cfg), 
+   
+    wait_for_value({height, ForkLength}, [node1],
+                    ForkLength * ?MINING_TIMEOUT, Cfg), 
+    A150 = request(node1, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
+    A300 = request(node1, [v2, 'block-by-height'], #{height => ForkLength}, Cfg),
+
+    stop_node(node1, infinity, Cfg),
+
+    start_node(node2, Cfg),
+
+    %% Make main chain at least 50 blocks ahead
+    wait_for_value({height, DiffLength}, [node2], DiffLength * ?MINING_TIMEOUT, Cfg),
+    B150 = request(node2, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
 
     %% Different at height DiffLength
     ?assertNotEqual(A150, B150),
-    
-    start_node(net2_node2, Cfg),
-    wait_for_value({height, DiffLength}, [net2_node2], DiffLength * ?MINING_TIMEOUT, Cfg),
 
-    C150 = request(net2_node2, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
+    start_node(node3, Cfg),
 
-    %% Agree on the shorter fork
+    wait_for_value({height, DiffLength}, [node3], DiffLength * ?MINING_TIMEOUT, Cfg),
+    C150 = request(node3, [v2, 'block-by-height'], #{height => DiffLength}, Cfg),
+
+    %% Syncing against the shorter fork
     ?assertEqual(B150, C150),
 
-    %% Join A and B to have B switch fork to the longer chain of A
-    connect_node(net1_node1, net2, Cfg),
-    connect_node(net2_node1, net1, Cfg),
-    %% connect_node(net2_node2, net1, Cfg),
+    %% Let node2 switch fork by sync with node1
+    start_node(node1, Cfg), 
 
-    wait_for_value({height, SyncLength}, [net1_node1, net2_node1, net2_node2],
+    wait_for_value({height, ForkLength}, [node1, node2, node3],
                     Length * ?MINING_TIMEOUT, Cfg),
 
-    A450 = request(net1_node1, [v2, 'block-by-height'], #{height => SyncLength}, Cfg),
-    B450 = request(net2_node1, [v2, 'block-by-height'], #{height => SyncLength}, Cfg),
-    C450 = request(net2_node2, [v2, 'block-by-height'], #{height => SyncLength}, Cfg),
+    A450 = request(node1, [v2, 'block-by-height'], #{height => ForkLength}, Cfg),
+    B450 = request(node3, [v2, 'block-by-height'], #{height => ForkLength}, Cfg),
+    C450 = request(node3, [v2, 'block-by-height'], #{height => ForkLength}, Cfg),
 
     %% Check that the chain merged
-    ?assertEqual(A450, B450),
-    ?assertEqual(B450, C450),
+    ?assertEqual(A450, A300),
+    ?assertEqual(B450, A450),
+    ?assertEqual(C450, A450),
     ok.  
 
 %=== INTERNAL FUNCTIONS ========================================================

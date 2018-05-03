@@ -272,37 +272,46 @@ stop_and_continue_sync(Cfg) ->
     %% Create a chain long enough to need 10 seconds to fetch it
     Length = BlocksPerSecond * 20,
 
-    setup_nodes([?OLD_NODE1, ?OLD_NODE2], Cfg),
+  setup_nodes([#{ name    => node1,
+                  peers   => [node2],
+                  backend => aest_docker,
+                  source  => {pull, "aeternity/epoch:local"}
+                }, 
+               #{ name    => node2,
+                  peers   => [node1],
+                  backend => aest_docker,
+                  source  => {pull, "aeternity/epoch:local"}
+                 }], Cfg),
 
-    start_node(old_node1, Cfg),
-    wait_for_value({height, 0}, [old_node1], NodeStartupTime, Cfg),
+    start_node(node1, Cfg),
+    wait_for_value({height, 0}, [node1], NodeStartupTime, Cfg),
 
     StartTime = os:timestamp(),
-    wait_for_value({height, Length}, [old_node1], Length * ?MINING_TIMEOUT, Cfg),
+    wait_for_value({height, Length}, [node1], Length * ?MINING_TIMEOUT, Cfg),
     EndTime = os:timestamp(),
     %% Average mining time per block plus 50% extra
     MiningTime = round(timer:now_diff(EndTime, StartTime) * 1.5)
                  div (1000 * Length),
 
-    B1 = request(old_node1, [v2, 'block-by-height'], #{height => Length}, Cfg),
+    B1 = request(node1, [v2, 'block-by-height'], #{height => Length}, Cfg),
     ct:log("Node 1 at height ~p: ~p~n", [Length, B1]),
 
     %% Start fetching the chain
-    start_node(old_node2, Cfg),
-    wait_for_value({height, 0}, [old_node2], NodeStartupTime, Cfg),
+    start_node(node2, Cfg),
+    wait_for_value({height, 0}, [node2], NodeStartupTime, Cfg),
     ct:log("Node 2 ready to go"),
 
     %% we are fetching blocks stop node1 now
-    kill_node(old_node1, Cfg),
-    Top2 = request(old_node2, [v2, 'top'], #{}, Cfg),
+    kill_node(node1, Cfg),
+    Top2 = request(node2, [v2, 'top'], #{}, Cfg),
     ct:log("Node 2 top: ~p~n", [Top2]),
     Height = maps:get(height, Top2),
     case Height >= Length of
          true -> {skip, already_synced_when_stopped};
          false ->
-            start_node(old_node1, Cfg),
-            wait_for_value({height, Length}, [old_node2], (Length - Height) * MiningTime, Cfg),
-            B2 = request(old_node2, [v2, 'block-by-height'], #{height => Length}, Cfg),
+            start_node(node1, Cfg),
+            wait_for_value({height, Length}, [node2], (Length - Height) * MiningTime, Cfg),
+            B2 = request(node2, [v2, 'block-by-height'], #{height => Length}, Cfg),
             ct:log("Node 2 at height ~p: ~p~n", [Length, B2]),
             ?assertEqual(B1, B2)
     end.

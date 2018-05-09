@@ -1,4 +1,4 @@
-FROM aeternity/builder as builder
+FROM aeternity/builder:ci-build-PT-155897294_external_rocksdb as builder
 
 # Add required files to download and compile only the dependencies
 ADD rebar.config rebar.lock Makefile rebar3 rebar.config.script VERSION /app/

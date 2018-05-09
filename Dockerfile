@@ -1,5 +1,10 @@
 FROM aeternity/builder:ci-build-PT-155897294_external_rocksdb as builder
 
+# Use external (static) RocksDB
+ENV BUILD_ROCKSDB no
+ENV SNAPPY_LIB /usr/lib/x86_64-linux-gnu/libsnappy.a
+ENV LZ4_LIB /usr/lib/x86_64-linux-gnu/liblz4.a
+
 # Add required files to download and compile only the dependencies
 ADD rebar.config rebar.lock Makefile rebar3 rebar.config.script VERSION /app/
 RUN cd /app && make prod-compile-deps

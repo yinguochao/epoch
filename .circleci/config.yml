@@ -3,7 +3,7 @@ version: 2
 references:
   container_config: &container_config
     docker:
-      - image: aeternity/builder
+      - image: aeternity/builder:ci-build-PT-155897294_external_rocksdb
         user: builder
     working_directory: ~/epoch
     environment:
@@ -73,6 +73,9 @@ references:
       name: Build Package Tarball
       environment:
         PACKAGES_DIR: *packages_workspace
+        BUILD_ROCKSDB: no
+        SNAPPY_LIB: /usr/lib/x86_64-linux-gnu/libsnappy.a
+        LZ4_LIB: /usr/lib/x86_64-linux-gnu/liblz4.a
       command: |
         make prod-package
         mkdir ${PACKAGES_DIR:?}

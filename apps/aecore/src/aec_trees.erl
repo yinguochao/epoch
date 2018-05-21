@@ -27,8 +27,8 @@
          set_oracles/2
         ]).
 
--export([apply_signed_txs/4,
-         apply_signed_txs_strict/4,
+-export([apply_signed_txs/5,
+         apply_signed_txs_strict/5,
          ensure_account/2]).
 
 -record(trees, {
@@ -118,18 +118,19 @@ contracts(Trees) ->
 set_contracts(Trees, Contracts) ->
     Trees#trees{contracts = Contracts}.
 
--spec apply_signed_txs_strict(list(aetx_sign:signed_tx()), trees(), height(),
-                              non_neg_integer()) ->
+-spec apply_signed_txs_strict(list(aetx_sign:signed_tx()), list(aetx_sign:signed_tx()),
+                              trees(), height(), non_neg_integer()) ->
                                  {ok, list(aetx_sign:signed_tx()), trees()}
                                | {'error', atom()}.
-apply_signed_txs_strict(SignedTxs, Trees, Height, ConsensusVersion) ->
-    apply_signed_txs_common(SignedTxs, Trees, Height, ConsensusVersion, true).
+apply_signed_txs_strict(SignedTxs, PrevBlockSignedTxs, Trees, Height, ConsensusVersion) ->
+    apply_signed_txs_common(SignedTxs, PrevBlockSignedTxs, Trees, Height, ConsensusVersion, true).
 
--spec apply_signed_txs(list(aetx_sign:signed_tx()), trees(), height(),
+-spec apply_signed_txs(list(aetx_sign:signed_tx()), list(aetx_sign:signed_tx()),
+                       trees(), height(),
                        non_neg_integer()) ->
                           {ok, list(aetx_sign:signed_tx()), trees()}.
-apply_signed_txs(SignedTxs, Trees, Height, ConsensusVersion) ->
-    {ok, _, _} = apply_signed_txs_common(SignedTxs, Trees, Height, ConsensusVersion, false).
+apply_signed_txs(SignedTxs, PrevBlockSignedTxs, Trees, Height, ConsensusVersion) ->
+    {ok, _, _} = apply_signed_txs_common(SignedTxs, PrevBlockSignedTxs, Trees, Height, ConsensusVersion, false).
 
 %%%=============================================================================
 %%% Internal functions
@@ -165,12 +166,12 @@ internal_commit_to_db(Trees) ->
                , accounts  = aec_accounts_trees:commit_to_db(accounts(Trees))
                }.
 
-apply_signed_txs_common(SignedTxs, Trees0, Height, ConsensusVersion, Strict) ->
+apply_signed_txs_common(SignedTxs, PrevBlockSignedTxs, Trees0, Height, ConsensusVersion, Strict) ->
     Trees1 = perform_pre_transformations(Trees0, Height),
     case apply_txs_on_state_trees(SignedTxs, Trees1, Height, ConsensusVersion, Strict) of
         {ok, SignedTxs1, Trees2} ->
-            TotalFee = calculate_total_fee(SignedTxs1),
-            Trees3 = grant_fee_to_miner(SignedTxs1, Trees2, TotalFee),
+            TotalReward = calculate_total_reward(SignedTxs1, PrevBlockSignedTxs),
+            Trees3 = grant_fee_to_miner(SignedTxs1, Trees2, TotalReward),
             {ok, SignedTxs1, Trees3};
         {error, _} = E -> E
     end.
@@ -203,7 +204,12 @@ apply_txs_on_state_trees([SignedTx | Rest], FilteredSignedTxs, Trees0, Height, C
             apply_txs_on_state_trees(Rest, FilteredSignedTxs, Trees0, Height, ConsensusVersion, Strict)
     end.
 
-calculate_total_fee(SignedTxs) ->
+calculate_total_reward(SignedTxs, PrevBlockSignedTxs) ->
+    CurrentBlockReward = total_fee(SignedTxs),
+    PrevBlockReward = total_fee(PrevBlockSignedTxs),
+    floor(0.4 * CurrentBlockReward) + ceil(0.6 * PrevBlockReward).
+
+total_fee(SignedTxs) ->
     lists:foldl(
       fun(SignedTx, TotalFee) ->
               Fee = aetx:fee(aetx_sign:tx(SignedTx)),

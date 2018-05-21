@@ -135,9 +135,9 @@ new_key(LastBlock, CurrentKeyBlock, Txs, Trees0) ->
     {B, _} = new_key_with_state(LastBlock, CurrentKeyBlock, Txs, Trees0),
     B.
 
--spec new_with_state(atom(), block(), list(aetx_sign:signed_tx()), aec_trees:trees()) ->
+-spec new_with_state(block(), block(), list(aetx_sign:signed_tx()), aec_trees:trees()) ->
                             {block(), aec_trees:trees()}.
-new_with_state(LastBlock, CurrentKeyBlock, Txs, Trees0) ->
+new_with_state(LastBlock = #block{}, CurrentKeyBlock, Txs, Trees0) ->
 
     {ok, LastBlockHeaderHash} = hash_internal_representation(LastBlock),
 
@@ -145,7 +145,7 @@ new_with_state(LastBlock, CurrentKeyBlock, Txs, Trees0) ->
     Version = protocol_effective_at_height(LastBlockHeight),
 
     %% NG-INFO: here we modify state trees based on transactions
-    {ok, Txs1, Trees} = aec_trees:apply_signed_txs(Txs, Trees0, LastBlockHeight, Version),
+    {ok, Txs1, Trees} = aec_trees:apply_signed_txs(Txs, aec_blocks:txs(LastBlock), Trees0, LastBlockHeight, Version),
     {ok, TxsRootHash} = aec_txs_trees:root_hash(aec_txs_trees:from_txs(Txs1)),
     NewBlock =
         #block{height = LastBlockHeight,

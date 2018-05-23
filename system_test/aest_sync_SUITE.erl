@@ -189,7 +189,6 @@ new_node_joins_network(Cfg) ->
 
     Length = max(20, 5 + proplists:get_value(blocks_per_second, Cfg) * StartupTime),
 
-
     %% Mines for 20 blocks and calculate the average mining time
     StartTime = os:timestamp(),
     wait_for_value({height, Length}, [old_node1, old_node2], Length * ?MINING_TIMEOUT, Cfg),
@@ -228,13 +227,12 @@ new_node_joins_network(Cfg) ->
 %% that we had in the chain before stopping: data is persistent.
 docker_keeps_data(Cfg) ->
     Length = 20,
-    NodeStartupTime = proplists:get_value(startup_timeout, Cfg),
     NodeShutdownTime = proplists:get_value(node_shutdown_time, Cfg),
 
     setup_nodes([?STANDALONE_NODE], Cfg),
 
     start_node(standalone_node, Cfg),
-    wait_for_value({height, 0}, [standalone_node], NodeStartupTime, Cfg),
+    wait_for_startup([standalone_node], 0, Cfg),
 
     %% Mines for 20 blocks and calculate the average mining time
     StartTime = os:timestamp(),
@@ -251,7 +249,7 @@ docker_keeps_data(Cfg) ->
     %% This requires some time
 
     start_node(standalone_node, Cfg),
-    wait_for_value({height, 0}, [standalone_node], NodeStartupTime, Cfg),
+    wait_for_startup([standalone_node], 0, Cfg),
 
     ct:log("Node restarted and ready to go"),
 
@@ -281,7 +279,7 @@ docker_keeps_data(Cfg) ->
 
     stop_node(standalone_node, NodeShutdownTime, Cfg),
     start_node(standalone_node, Cfg),
-    wait_for_value({height, 0}, [standalone_node], NodeStartupTime, Cfg),
+    wait_for_startup([standalone_node], 0, Cfg),
 
     %% Give it time to read from disk, but not enough to build a new chain of same length
     timer:sleep(MiningTime * 5),
@@ -310,7 +308,6 @@ docker_keeps_data(Cfg) ->
 %% create a fork with higher difficulty in the time Node1 restarts.
 stop_and_continue_sync(Cfg) ->
     BlocksPerSecond = proplists:get_value(blocks_per_second, Cfg),
-    NodeStartupTime = proplists:get_value(startup_timeout, Cfg),
 
     %% Create a chain long enough to need 10 seconds to fetch it
     Length = BlocksPerSecond * 50,
@@ -327,7 +324,7 @@ stop_and_continue_sync(Cfg) ->
                   }], Cfg),
 
     start_node(node1, Cfg),
-    wait_for_value({height, 0}, [node1], NodeStartupTime, Cfg),
+    wait_for_startup([node1], 0, Cfg),
 
     wait_for_value({height, Length}, [node1], Length * ?MINING_TIMEOUT, Cfg),
 
@@ -337,7 +334,7 @@ stop_and_continue_sync(Cfg) ->
 
     %% Start fetching the chain
     start_node(node2, Cfg),
-    wait_for_value({height, 0}, [node2], NodeStartupTime, Cfg),
+    wait_for_startup([node2], 0, Cfg),
     ct:log("Node 2 ready to go"),
 
     %% we are fetching blocks, abruptly stop node1 now

@@ -8,8 +8,7 @@
 -module(aens).
 
 %% API
--export([resolve_encoded/3,
-         resolve_decoded/3,
+-export([resolve/3,
          get_commitment_hash/2,
          get_name_entry/2,
          get_name_hash/1]).
@@ -23,14 +22,24 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+-spec resolve(atom(), aec_id:id(), aens_state_tree:tree()) -> {ok, binary()} | {error, atom()}.
+resolve(Type, {id, name, NameHash}, NSTree) ->
+    case get_name_from_hash(NameHash, NSTree) of
+        {ok, #{<<"pointers">> := Pointers}} ->
+            case proplists:get_value(atom_to_binary(Type, utf8), Pointers) of
+                undefined -> {error, type_not_found};
+                Val -> aec_base58c:safe_decode(Type, Val)
+            end;
+        {error, _Reason} = Error ->
+            Error
+    end;
 
--spec resolve_decoded(atom(), binary(), aens_state_tree:tree()) -> {ok, binary()} | {error, atom()}.
-resolve_decoded(Type, PubKeyOrName, NSTree) ->
-    resolve(Type, PubKeyOrName, NSTree, false).
+resolve(_Type, {id, _, Value}, _NSTree) ->
+    {ok, Value};
 
--spec resolve_encoded(atom(), binary(), aens_state_tree:tree()) -> {ok, binary()} | {error, atom()}.
-resolve_encoded(Type, PubKeyOrName, NSTree) ->
-    resolve(Type, PubKeyOrName, NSTree, true).
+resolve(Type, PubKeyOrNameHash, NSTree) ->
+    IdDecoded = aec_id:decode(PubKeyOrNameHash),
+    resolve(Type, IdDecoded, NSTree).
 
 -spec get_commitment_hash(binary(), integer()) -> {ok, aens_hash:commitment_hash()} |
                                                   {error, atom()}.
@@ -69,26 +78,6 @@ get_name_hash(Name) when is_binary(Name) ->
 %%% Internal functions
 %%%===================================================================
 
--spec resolve(atom(), binary(), aens_state_tree:tree(), boolean()) -> {ok, binary()} | {error, atom()}.
-resolve(Type, PubKeyOrName, NSTree, IsEncoded) ->
-    case aens_utils:validate_name(PubKeyOrName) of
-        {error, _Reason} ->
-            case IsEncoded of
-                true -> aec_base58c:safe_decode(Type, PubKeyOrName);
-                false -> {ok, PubKeyOrName}
-            end;
-        ok ->
-            case get_name(PubKeyOrName, NSTree) of
-                {ok, #{<<"pointers">> := Pointers}} ->
-                    case proplists:get_value(atom_to_binary(Type, utf8), Pointers) of
-                        undefined -> {error, type_not_found};
-                        Val -> aec_base58c:safe_decode(Type, Val)
-                    end;
-                {error, _Reason} = Error ->
-                    Error
-            end
-    end.
-
 get_name(Name, NSTree) ->
     case get_name_hash(Name) of
         {ok, NameHash} ->
@@ -109,4 +98,20 @@ get_name(Name, NSTree) ->
             end;
         {error, _} = E ->
             E
+    end.
+
+get_name_from_hash(NameHash, NSTree) ->
+    case aens_state_tree:lookup_name(NameHash, NSTree) of
+        {value, N} ->
+            case aens_utils:is_revoked(N) of
+                true ->
+                    {error, name_revoked};
+                false ->
+                    {ok, #{<<"hash">>     => NameHash,
+                           <<"name_ttl">> => aens_names:expires(N),
+                           <<"owner">>    => aens_names:owner(N),
+                           <<"pointers">> => aens_names:pointers(N)}}
+            end;
+        none ->
+            {error, name_not_found}
     end.

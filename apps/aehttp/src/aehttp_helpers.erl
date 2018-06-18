@@ -170,8 +170,8 @@ get_nonce(AccountKey) ->
         end
     end.
 
-resolve_name_for_type(PubkeyOrName, NameType) ->
-    {ok, PubkeyMaybeEnc} = aec_chain:resolve_name_decoded(NameType, PubkeyOrName),
+resolve_name_for_type(PubkeyOrNameHash, NameType) ->
+    {ok, PubkeyMaybeEnc} = aec_chain:resolve_name(NameType, PubkeyOrNameHash),
     case aec_base58c:safe_decode(NameType, PubkeyMaybeEnc) of
         {ok, PubkeyDec} -> PubkeyDec;
         {error, _}      -> PubkeyMaybeEnc
@@ -232,8 +232,8 @@ verify_oracle_existence(OracleKey) ->
 
 verify_oracle_query_existence(OracleKey, QueryKey) ->
     fun(Req, State) ->
-        OraclePubKeyOrName = maps:get(OracleKey, State),
-        OraclePubKey = resolve_name_for_type(OraclePubKeyOrName, oracle_pubkey),
+        OraclePubKeyOrNameHash = maps:get(OracleKey, State),
+        OraclePubKey = resolve_name_for_type(OraclePubKeyOrNameHash, oracle_pubkey),
         Lookup =
             fun(QId, Tree) ->
                 aeo_state_tree:lookup_query(OraclePubKey, QId, Tree)
@@ -245,8 +245,8 @@ verify_oracle_query_existence(OracleKey, QueryKey) ->
 
 verify_key_in_state_tree(Key, StateTreeFun, Lookup, NameType, Entity) ->
     fun(_Req, State) ->
-        ReceivedAddressOrName = maps:get(Key, State),
-        ReceivedAddress = resolve_name_for_type(ReceivedAddressOrName, NameType),
+        ReceivedAddressOrNameHash = maps:get(Key, State),
+        ReceivedAddress = resolve_name_for_type(ReceivedAddressOrNameHash, NameType),
         {ok, Trees}  = aec_chain:get_top_state(),
         Tree = StateTreeFun(Trees),
         case Lookup(ReceivedAddress, Tree) of

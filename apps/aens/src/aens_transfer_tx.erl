@@ -121,7 +121,7 @@ process(#ns_transfer_tx{fee = Fee,
 
     Name0 = aens_state_tree:get_name(NameHash, NamesTree0),
 
-    {ok, RecipientPubKey} = aens:resolve_decoded(account_pubkey, RecipientPubKeyOrName, NamesTree0),
+    {ok, RecipientPubKey} = aens:resolve(account_pubkey, RecipientPubKeyOrName, NamesTree0),
     Name1 = aens_names:transfer(RecipientPubKey, Name0),
     NamesTree1 = aens_state_tree:enter_name(Name1, NamesTree0),
 

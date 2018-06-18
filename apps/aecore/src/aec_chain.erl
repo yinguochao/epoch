@@ -43,8 +43,7 @@
 
 %%% NS API
 -export([ name_entry/1
-        , resolve_name_encoded/2
-        , resolve_name_decoded/2
+        , resolve_name/2
         ]).
 
 %%% Oracles API
@@ -169,19 +168,10 @@ name_entry(Name) ->
         error       -> {error, no_state_trees}
     end.
 
--spec resolve_name_encoded(atom(), binary()) -> {'ok', binary()} |
-                                                {error, atom()}.
-resolve_name_encoded(Type, Name) ->
+-spec resolve_name(atom(), binary()) -> {'ok', binary()} | {error, atom()}.
+resolve_name(Type, Name) ->
     case get_top_state() of
-        {ok, Trees} -> aens:resolve_encoded(Type, Name, aec_trees:ns(Trees));
-        error       -> {error, no_state_trees}
-    end.
-
--spec resolve_name_decoded(atom(), binary()) -> {'ok', binary()} |
-                                                {error, atom()}.
-resolve_name_decoded(Type, Name) ->
-    case get_top_state() of
-        {ok, Trees} -> aens:resolve_decoded(Type, Name, aec_trees:ns(Trees));
+        {ok, Trees} -> aens:resolve(Type, Name, aec_trees:ns(Trees));
         error       -> {error, no_state_trees}
     end.
 

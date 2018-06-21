@@ -24,6 +24,7 @@
 %%%===================================================================
 -spec resolve(atom(), aec_id:id(), aens_state_tree:tree()) -> {ok, binary()} | {error, atom()}.
 resolve(Type, {id, name, NameHash}, NSTree) ->
+    lager:info("resolveX_namehash ~p", [NameHash]),
     case get_name_from_hash(NameHash, NSTree) of
         {ok, #{<<"pointers">> := Pointers}} ->
             case proplists:get_value(atom_to_binary(Type, utf8), Pointers) of
@@ -35,9 +36,11 @@ resolve(Type, {id, name, NameHash}, NSTree) ->
     end;
 
 resolve(_Type, {id, _, Value}, _NSTree) ->
+    lager:info("resolveX_value ~p", [Value]),
     {ok, Value};
 
 resolve(Type, PubKeyOrNameHash, NSTree) ->
+    lager:info("resolveX_pubkeyorhash ~p", [PubKeyOrNameHash]),
     IdDecoded = aec_id:decode(PubKeyOrNameHash),
     resolve(Type, IdDecoded, NSTree).
 

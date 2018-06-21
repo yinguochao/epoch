@@ -2588,7 +2588,7 @@ naming_system_transfer_name_to_name(_Config) ->
     naming_pre_claim_claim_update(_Config, Name, NamePubKey),
 
     %% Submit name transfer tx and check it is in mempool
-    {ok, 200, _}                   = post_name_transfer_tx(NHash, Name, Fee),
+    {ok, 200, _}                   = post_name_transfer_tx_to_name(NHash, NHash, Fee),
     {ok, [TransferTx0]}            = rpc(aec_tx_pool, peek, [infinity]),
     {name_transfer_tx, TransferTx} = aetx:specialize_type(aetx_sign:tx(TransferTx0)),
     Name                           = aens_transfer_tx:recipient_account(TransferTx),
@@ -3811,9 +3811,16 @@ post_name_update_tx(NameHash, NameTTL, Pointers, ClientTTL, Fee) ->
 post_name_transfer_tx(NameHash, RecipientPubKey, Fee) ->
     Host = internal_address(),
     http_request(Host, post, "name-transfer-tx",
-                 #{name_hash        => aec_base58c:encode(name, NameHash),
+                 #{name_hash => aec_base58c:encode(name, NameHash),
                    recipient => aec_base58c:encode(account_pubkey, RecipientPubKey),
-                   fee              => Fee}).
+                   fee       => Fee}).
+
+post_name_transfer_tx_to_name(NameHash, RecipientNameHash, Fee) ->
+    Host = internal_address(),
+    http_request(Host, post, "name-transfer-tx",
+        #{name_hash => aec_base58c:encode(name, NameHash),
+          recipient => aec_base58c:encode(name, RecipientNameHash),
+          fee       => Fee}).
 
 post_name_revoke_tx(NameHash, Fee) ->
     Host = internal_address(),

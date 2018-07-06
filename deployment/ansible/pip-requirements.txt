@@ -5,3 +5,4 @@ pyyaml ~= 3.12
 datadog ~= 0.17
 boto
 boto3
+awscli ~= 1.15

@@ -331,9 +331,6 @@ jobs:
     <<: *container_config
     steps:
       - checkout
-      - *restore_pip_cache
-      - *install_pip_requirements
-      - *save_pip_cache
       - *set_package_path
       - *build_package
       - *test_package

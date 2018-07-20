@@ -6,20 +6,16 @@ The following shows the intended usage of the epoch API for Sophia contracts.
 It uses a counter as sample contract.
 
 >>> print(counter_contract)
-<BLANKLINE>
 contract Counter =
-<BLANKLINE>
-  record state = { value : int }
-<BLANKLINE>
-  function init(val) = { value = val }
-  function get()     = state.value
-  function tick()    = put(state{ value = state.value + 1 })
-<BLANKLINE>
+  record state = { value : string }
+  public function init(val) : state = { value = val }
+  public function get() = state.value
+  public stateful function set(val) : state = { value = val }
 <BLANKLINE>
 
-Please note that the return value of the "get" function is (inferred as) "int".
+Please note that the return value of the "get" function is (inferred as) "string".
 
->>> counter_contract_get_function_return_value_type = "int"
+>>> counter_contract_get_function_return_value_type = "string"
 
 Step 1: Bob creates the counter contract on the chain
 =====================================================
@@ -40,7 +36,9 @@ Bob computes - off-chain, using the epoch API - the bytecode of the contract.
 
 Bob computes - off-chain, using the epoch API - the initialization call data.
 
->>> counter_init_value = 21
+>>> counter_init_value = '"foo"'
+>>> print(counter_init_value)
+"foo"
 >>> contract_init_call_data = {'f': "init", 'arg': "({})".format(counter_init_value)}
 >>> from swagger_client.models.contract_call_input import ContractCallInput
 >>> encoded_init_call_data = epoch_node['external_api'].encode_calldata(ContractCallInput("sophia", contract_bytecode, contract_init_call_data['f'], contract_init_call_data['arg'])).calldata
@@ -154,4 +152,4 @@ Alice decodes the return value - off-chain, using the epoch API.
 >>> from swagger_client.models.sophia_binary_data import SophiaBinaryData
 >>> epoch_node['external_api'].decode_data(SophiaBinaryData(sophia_type=counter_contract_get_function_return_value_type,
 ...                                                         data=contract_call_object.return_value)).data
-{u'type': u'word', u'value': 21}
+{u'type': u'string', u'value': u'foo'}

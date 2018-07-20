@@ -1,0 +1,5 @@
+contract Counter =
+  record state = { value : string }
+  public function init(val) : state = { value = val }
+  public function get() = state.value
+  public stateful function set(val) : state = { value = val }

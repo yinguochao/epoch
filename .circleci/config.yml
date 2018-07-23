@@ -3,7 +3,7 @@ version: 2
 references:
   container_config: &container_config
     docker:
-      - image: aeternity/builder
+      - image: aeternity/builder:ci-build-158550692_cleanup
         user: builder
     working_directory: ~/epoch
     environment:

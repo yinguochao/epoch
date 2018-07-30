@@ -146,6 +146,7 @@
 
 -optional_callbacks([gas_price/1]).
 
+
 %% -- ADT Implementation -----------------------------------------------------
 
 -spec new(CallbackModule :: module(),  Tx :: tx_instance()) ->

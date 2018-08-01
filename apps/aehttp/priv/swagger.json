@@ -2525,23 +2525,6 @@
         }
       }
     },
-    "/version" : {
-      "get" : {
-        "tags" : [ "external", "debug" ],
-        "description" : "Get node's version",
-        "operationId" : "GetVersion",
-        "produces" : [ "application/json" ],
-        "parameters" : [ ],
-        "responses" : {
-          "200" : {
-            "description" : "successful operation",
-            "schema" : {
-              "$ref" : "#/definitions/Version"
-            }
-          }
-        }
-      }
-    },
     "/debug/peers" : {
       "get" : {
         "tags" : [ "internal", "debug" ],
@@ -4186,25 +4169,6 @@
       "example" : {
         "balance" : 0,
         "pub_key" : "pub_key"
-      }
-    },
-    "Version" : {
-      "type" : "object",
-      "properties" : {
-        "version" : {
-          "type" : "string"
-        },
-        "revision" : {
-          "type" : "string"
-        },
-        "genesis_hash" : {
-          "type" : "string"
-        }
-      },
-      "example" : {
-        "genesis_hash" : "genesis_hash",
-        "version" : "version",
-        "revision" : "revision"
       }
     },
     "Status" : {

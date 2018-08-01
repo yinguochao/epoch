@@ -106,9 +106,7 @@
 -export(
    [
     % get block-s
-    block_genesis/1,
     block_pending/1,
-    block_latest/1,
     block_by_height/1,
     block_not_found_by_height/1,
     block_by_hash/1,
@@ -228,8 +226,6 @@
     wrong_http_method_miner_pub_key/1,
     wrong_http_method_version/1,
     wrong_http_method_info/1,
-    wrong_http_method_block_latest/1,
-    wrong_http_method_block_genesis/1,
     wrong_http_method_block_txs_count_by_height/1,
     wrong_http_method_block_txs_count_by_hash/1,
     wrong_http_method_block_txs_count_latest/1,
@@ -488,9 +484,7 @@ groups() ->
      {external_endpoints, [sequence],
       [
         % get block-s
-        block_genesis,
         %block_pending,  TODO: delete the test case in the next PR
-        block_latest,
 
         block_by_height,
         block_not_found_by_height,
@@ -597,8 +591,6 @@ groups() ->
         wrong_http_method_miner_pub_key,
         wrong_http_method_version,
         wrong_http_method_info,
-        wrong_http_method_block_latest,
-        wrong_http_method_block_genesis,
         wrong_http_method_block_txs_count_by_height,
         wrong_http_method_block_txs_count_by_hash,
         wrong_http_method_block_txs_count_latest,
@@ -3226,30 +3218,6 @@ peer_pub_key(_Config) ->
     {ok, PeerPubKey} = aec_base58c:safe_decode(peer_pubkey, EncodedPubKey),
     ok.
 
-block_genesis(_Config) ->
-    GetExpectedBlockFun =
-        fun(_H) ->
-            GenesisBlock = rpc(aec_chain, genesis_block, []),
-            {ok, GenesisBlock}
-        end,
-    CallApiFun =
-        fun(_H) ->
-            get_internal_block_preset("genesis")
-        end,
-    internal_get_block_generic(GetExpectedBlockFun, CallApiFun).
-
-block_latest(_Config) ->
-    GetExpectedBlockFun =
-        fun(_H) ->
-            TopBlock = rpc(aec_chain, top_block, []),
-            {ok, TopBlock}
-        end,
-    CallApiFun =
-        fun(_H) ->
-            get_internal_block_preset("latest")
-        end,
-    internal_get_block_generic(GetExpectedBlockFun, CallApiFun).
-
 %% we need really slow mining; since mining speed is not modified for the
 %% first X blocks, we need to premine them before the test
 block_pending(_Config) ->
@@ -5646,14 +5614,6 @@ wrong_http_method_info(_Config) ->
 wrong_http_method_block_by_height(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, post, "block/height/123", []).
-
-wrong_http_method_block_latest(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, post, "block/latest", []).
-
-wrong_http_method_block_genesis(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, post, "block/genesis", []).
 
 wrong_http_method_block_txs_count_by_height(_Config) ->
     Host = internal_address(),

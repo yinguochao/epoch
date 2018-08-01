@@ -393,12 +393,6 @@ handle_request('GetStatus', _Params, _Context) ->
        <<"peer-count">>                 => PeerCount,
        <<"pending-transactions-count">> => PendingTxsCount}};
 
-handle_request('GetBlockGenesis', Req, _Context) ->
-    get_block(fun aehttp_logic:get_block_genesis/0, Req);
-
-handle_request('GetBlockLatest', Req, _Context) ->
-    get_block(fun aehttp_logic:get_block_latest/0, Req);
-
 handle_request('GetKeyBlockByHeightObsolete', Req, _Context) ->
     Height = maps:get('height', Req),
     get_block(fun() -> aehttp_logic:get_key_block_by_height(Height) end, Req);

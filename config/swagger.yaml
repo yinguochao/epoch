@@ -2243,36 +2243,6 @@ paths:
           schema:
             $ref: '#/definitions/Error'
       security:
-  /block/genesis:
-    get:
-      tags:
-        - external
-        - chain
-      operationId: GetBlockGenesis
-      description: 'Get the genesis block'
-      produces:
-        - application/json
-      responses:
-        '200':
-          description: The genesis block
-          schema:
-            $ref: '#/definitions/KeyBlock'
-      security:
-  /block/latest:
-    get:
-      tags:
-        - external
-        - chain
-      operationId: GetBlockLatest
-      description: 'Get the top block'
-      produces:
-        - application/json
-      responses:
-        '200':
-          description: The top block
-          schema:
-            $ref: '#/definitions/KeyBlock'
-      security:
   /block/txs/count/hash/{hash}:
     get:
       tags:

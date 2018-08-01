@@ -2652,40 +2652,6 @@
         }
       }
     },
-    "/block/genesis" : {
-      "get" : {
-        "tags" : [ "external", "chain" ],
-        "description" : "Get the genesis block",
-        "operationId" : "GetBlockGenesis",
-        "produces" : [ "application/json" ],
-        "parameters" : [ ],
-        "responses" : {
-          "200" : {
-            "description" : "The genesis block",
-            "schema" : {
-              "$ref" : "#/definitions/KeyBlock"
-            }
-          }
-        }
-      }
-    },
-    "/block/latest" : {
-      "get" : {
-        "tags" : [ "external", "chain" ],
-        "description" : "Get the top block",
-        "operationId" : "GetBlockLatest",
-        "produces" : [ "application/json" ],
-        "parameters" : [ ],
-        "responses" : {
-          "200" : {
-            "description" : "The top block",
-            "schema" : {
-              "$ref" : "#/definitions/KeyBlock"
-            }
-          }
-        }
-      }
-    },
     "/block/txs/count/hash/{hash}" : {
       "get" : {
         "tags" : [ "internal", "chain" ],

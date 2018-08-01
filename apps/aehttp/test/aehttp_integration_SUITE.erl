@@ -154,18 +154,6 @@
     miner_pub_key/1,
 
     %% requested Endpoints
-    block_txs_count_by_height/1,
-    block_txs_count_by_hash/1,
-
-    block_txs_count_by_height_not_found/1,
-    block_txs_count_by_hash_not_found/1,
-    block_txs_count_by_broken_hash/1,
-
-    block_tx_index_by_height/1,
-    block_tx_index_by_hash/1,
-    block_tx_index_latest/1,
-    block_tx_index_not_founds/1,
-
     naming_system_manage_name/1,
     naming_system_broken_txs/1,
 
@@ -181,8 +169,11 @@
     swagger_validation_body/1,
     %% swagger_validation_enum/1,
     swagger_validation_required/1,
-    swagger_validation_schema/1,
-    swagger_validation_types/1
+    swagger_validation_schema/1
+    %% TODO: validate that API expects some type but gets
+    %% a different type
+    %%swagger_validation_types/1
+
     ]).
 
 %%
@@ -222,11 +213,6 @@
     wrong_http_method_miner_pub_key/1,
     wrong_http_method_version/1,
     wrong_http_method_info/1,
-    wrong_http_method_block_txs_count_by_height/1,
-    wrong_http_method_block_txs_count_by_hash/1,
-    wrong_http_method_block_tx_by_index_height/1,
-    wrong_http_method_block_tx_by_index_hash/1,
-    wrong_http_method_block_tx_by_index_latest/1,
     wrong_http_method_list_oracles/1,
     wrong_http_method_list_oracle_queries/1,
     wrong_http_method_peers/1
@@ -521,18 +507,6 @@ groups() ->
         miner_pub_key,
 
         % requested Endpoints
-        block_txs_count_by_height,
-        block_txs_count_by_hash,
-
-        block_txs_count_by_height_not_found,
-        block_txs_count_by_hash_not_found,
-        block_txs_count_by_broken_hash,
-
-        block_tx_index_by_height,
-        block_tx_index_by_hash,
-        block_tx_index_latest,
-        block_tx_index_not_founds,
-
         list_oracles,
         list_oracle_queries,
 
@@ -542,8 +516,8 @@ groups() ->
         swagger_validation_body,
         %% swagger_validation_enum,
         swagger_validation_required,
-        swagger_validation_schema,
-        swagger_validation_types
+        swagger_validation_schema
+        %%swagger_validation_types
       ]},
      {wrong_http_method_endpoints, [], [
         wrong_http_method_top,
@@ -579,11 +553,6 @@ groups() ->
         wrong_http_method_miner_pub_key,
         wrong_http_method_version,
         wrong_http_method_info,
-        wrong_http_method_block_txs_count_by_height,
-        wrong_http_method_block_txs_count_by_hash,
-        wrong_http_method_block_tx_by_index_height,
-        wrong_http_method_block_tx_by_index_hash,
-        wrong_http_method_block_tx_by_index_latest,
         wrong_http_method_list_oracles,
         wrong_http_method_list_oracle_queries,
         wrong_http_method_peers
@@ -3244,164 +3213,6 @@ internal_get_block_generic(GetExpectedBlockFun, CallApiFun) ->
         lists:seq(MinBlockHeightToCheck, ForkHeight + BlocksToCheck)),
     ok.
 
-block_txs_count_by_height(_Config) ->
-    generic_counts_test(fun(H) -> rpc(aec_chain, get_key_block_by_height,
-                                     [H]) end,
-                        fun get_block_txs_count_by_height/1).
-
-block_txs_count_by_hash(_Config) ->
-    CallApiFun =
-        fun(H) ->
-            {ok, Hash} = block_hash_by_height(H),
-            get_block_txs_count_by_hash(Hash)
-        end,
-    generic_counts_test(fun(H) -> rpc(aec_chain, get_key_block_by_height,
-                                     [H]) end,
-                        CallApiFun).
-
-generic_counts_test(GetBlock, CallApi) ->
-    BlocksToMine = 5,
-    {ok, 200, #{<<"height">> := ChainHeight}} = get_top(),
-
-    Check = fun(H) ->
-                {ok, B} = GetBlock(H),
-                TxsCount = length(aec_blocks:txs(B)),
-                {ok, 200, #{<<"count">> := TxsCount}} = CallApi(H)
-            end,
-
-    %% Check genesis
-    Check(aec_block_genesis:height()),
-
-    %% Check BlocksToMine blocks
-    lists:foreach(
-        fun(Height) ->
-            add_spend_txs(),
-            aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), 2),
-            Check(Height + 1)
-        end,
-        lists:seq(ChainHeight, ChainHeight + BlocksToMine)),
-    ok.
-
-block_txs_count_by_height_not_found(_Config) ->
-    InitialHeight = aec_blocks:height(rpc(aec_chain, top_block, [])),
-    lists:foreach(
-        fun(H) ->
-            {ok, 404, #{<<"reason">> := <<"Chain too short">>}}
-                        = get_block_txs_count_by_height(H)
-        end,
-        lists:seq(InitialHeight + 1, InitialHeight + ?DEFAULT_TESTS_COUNT)),
-    ok.
-
-block_txs_count_by_hash_not_found(_Config) ->
-    lists:foreach(
-        fun(_Height) ->
-            H = random_hash(),
-            error = rpc(aec_chain, get_block, [H]),
-            Hash = aec_base58c:encode(block_hash, H),
-            {ok, 404, #{<<"reason">> := <<"Block not found">>}}
-                = get_block_txs_count_by_hash(Hash)
-        end,
-        lists:seq(1, ?DEFAULT_TESTS_COUNT)),
-    ok.
-
-block_txs_count_by_broken_hash(_Config) ->
-    lists:foreach(
-        fun(_) ->
-            <<_, BrokenHash/binary>> = aec_base58c:encode(block_hash, random_hash()),
-            {ok, 400, #{<<"reason">> := <<"Invalid hash">>}} =
-                get_block_txs_count_by_hash(BrokenHash)
-        end,
-        lists:seq(1, ?DEFAULT_TESTS_COUNT)),
-    ok.
-
-block_tx_index_by_height(_Config) ->
-    generic_block_tx_index_test(fun get_block_tx_by_index_height/2).
-
-block_tx_index_by_hash(_Config) ->
-    CallApiFun =
-        fun(H, Index) ->
-            {ok, Hash} = block_hash_by_height(H),
-            get_block_tx_by_index_hash(Hash, Index)
-        end,
-    generic_block_tx_index_test(CallApiFun).
-
-block_tx_index_latest(_Config) ->
-    generic_block_tx_index_test(
-        fun(_, Index) ->
-            get_block_tx_by_index_latest(Index)
-        end).
-
-block_tx_index_not_founds(_Config) ->
-    InitialHeight = aec_blocks:height(rpc(aec_chain, top_block, [])),
-    RandomHeight = InitialHeight + rand:uniform(999) + 1, % CurrentTop + 1..1000
-    Test =
-        fun(Code, ErrMsg, Fun, Cases) ->
-            lists:foreach(
-                fun({H, I}) ->
-                    {ok, Code, #{<<"reason">> := ErrMsg}} = Fun(H, I)
-                end,
-                Cases)
-        end,
-    Test(404, <<"Chain too short">>, fun get_block_tx_by_index_height/2,
-         [{RandomHeight, 0},
-          {RandomHeight, 1},
-          {RandomHeight + 1, 0},
-          {RandomHeight + 1, 1}]),
-    Test(404, <<"Block not found">>, fun get_block_tx_by_index_hash/2,
-         [{aec_base58c:encode(block_hash, random_hash()), 0},
-          {aec_base58c:encode(block_hash, random_hash()), 1}]),
-    BlocksToMine = 3,
-    lists:foreach(
-        fun(Height) ->
-            {ok, 200, #{<<"count">> := TxsCount}} = get_block_txs_count_by_height(Height),
-            Test(404, <<"Transaction not found">>, fun get_block_tx_by_index_height/2,
-                [{Height, TxsCount + 1},
-                 {Height, TxsCount + 2},
-                 {Height, TxsCount + rand:uniform(1000) + 1}
-                ]),
-            {ok, Hash} = block_hash_by_height(Height),
-            Test(404, <<"Transaction not found">>, fun get_block_tx_by_index_hash/2,
-                [{Hash, TxsCount + 1},
-                 {Hash, TxsCount + 2},
-                 {Hash, TxsCount + rand:uniform(1000) + 1}
-                ]),
-            aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), 2),
-            add_spend_txs()
-        end, lists:seq(0, BlocksToMine)),
-
-    ok.
-
-
-generic_block_tx_index_test(CallApi) when is_function(CallApi, 2)->
-    ok = rpc(aec_conductor, reinit_chain, []),
-    ForkHeight = aecore_suite_utils:latest_fork_height(),
-    %% ForkHeight can be 0, so no blocks are mined.
-    aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), ForkHeight),
-    GenerationCount = ?DEFAULT_TESTS_COUNT,
-    lists:foreach(
-        fun(Height) ->
-            {ok, 200, BlockMap} = get_block_by_height(Height),
-            AllTxs = maps:get(<<"transactions">>, BlockMap, []),
-            TxsIdxs = case length(AllTxs) of
-                    0 -> [];
-                    TxsLength -> lists:seq(1, TxsLength)
-                end,
-            lists:foreach(
-                fun({Tx, Index}) ->
-                    ct:log("Index: ~p, Transaction: ~p", [Index, Tx]),
-                    {ok, 200, #{<<"transaction">> := Tx}} =
-                        CallApi(Height, Index)
-                end,
-                lists:zip(AllTxs, TxsIdxs)),
-            %% The first generation (ForkHeight) is just 1 key block to get some
-            %% reward to be able to send txs in subsequent generations.
-            BlockCount = if Height == ForkHeight -> 1; true -> 2 end,
-            aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), BlockCount),
-            add_spend_txs()
-        end,
-        lists:seq(ForkHeight, ForkHeight + GenerationCount)), % from latest fork
-    ok.
-
 naming_system_manage_name(_Config) ->
     {ok, PubKey} = rpc(aec_keys, pubkey, []),
     PubKeyEnc   = aec_base58c:encode(account_pubkey, PubKey),
@@ -5240,36 +5051,6 @@ get_info() ->
     Host = external_address(),
     http_request(Host, get, "info", []).
 
-get_block_txs_count_by_height(Height) ->
-    Host = internal_address(),
-    http_request(Host, get, "block/txs/count/height/" ++ integer_to_list(Height),
-                 []).
-
-get_block_txs_count_by_hash(Hash) ->
-    Host = internal_address(),
-    http_request(Host, get, "block/txs/count/hash/" ++ http_uri:encode(Hash),
-                 []).
-
-get_block_txs_count_preset(Segment) ->
-    Host = internal_address(),
-    http_request(Host, get, "block/txs/count/" ++ Segment, []).
-
-get_block_tx_by_index_height(Height, Index) ->
-    Host = internal_address(),
-    http_request(Host, get, "block/tx/height/" ++ integer_to_list(Height) ++
-                                       "/" ++ integer_to_list(Index), []).
-
-get_block_tx_by_index_hash(Hash, Index) when is_binary(Hash) ->
-    get_block_tx_by_index_hash(binary_to_list(Hash), Index);
-get_block_tx_by_index_hash(Hash, Index) ->
-    Host = internal_address(),
-    http_request(Host, get, "block/tx/hash/" ++ http_uri:encode(Hash) ++
-                                       "/" ++ integer_to_list(Index), []).
-
-get_block_tx_by_index_latest(Index) ->
-    Host = internal_address(),
-    http_request(Host, get, "block/tx/latest/" ++ integer_to_list(Index), []).
-
 get_list_oracles(Max) ->
     get_list_oracles(undefined, Max).
 
@@ -5380,15 +5161,19 @@ swagger_validation_schema(_Config) ->
                    ttl => 100,
                    payload => <<"">>}).
 
-swagger_validation_types(_Config) ->
-    Host = internal_address(),
-    {ok, 400, #{
-            <<"reason">> := <<"validation_error">>,
-            <<"parameter">> := <<"height">>,
-            <<"info">> :=  #{
-                        <<"data">> := <<"not_integer">>,
-                        <<"error">> := <<"wrong_type">>
-        }}} = http_request(Host, get, "block/txs/count/height/not_integer", []).
+%%swagger_validation_types(_Config) ->
+%%    Host = internal_address(),
+%%    {ok, 400, #{
+%%            <<"reason">> := <<"validation_error">>,
+%%            <<"parameter">> := <<"height">>,
+%%            <<"info">> :=  #{
+%%                        <<"data">> := <<"not_integer">>,
+%%                        <<"error">> := <<"wrong_type">>
+%%        }}} = http_request(Host, get,
+%%                           "micro-blocks/hash/" ++
+%%                           "bh$11111111111111111111111111111111" ++
+%%                           "/transactions/index/" ++
+%%                           "not_integer", []).
 
 %% ============================================================
 %% HTTP Requests with wrong method
@@ -5525,26 +5310,6 @@ wrong_http_method_info(_Config) ->
 wrong_http_method_block_by_height(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, post, "block/height/123", []).
-
-wrong_http_method_block_txs_count_by_height(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, post, "block/txs/count/height/123", []).
-
-wrong_http_method_block_txs_count_by_hash(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, post, "block/txs/count/hash/123", []).
-
-wrong_http_method_block_tx_by_index_height(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, post, "block/tx/height/123/123", []).
-
-wrong_http_method_block_tx_by_index_hash(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, post, "block/tx/hash/123/123", []).
-
-wrong_http_method_block_tx_by_index_latest(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, post, "block/tx/latest/123", []).
 
 wrong_http_method_list_oracles(_Config) ->
     Host = internal_address(),

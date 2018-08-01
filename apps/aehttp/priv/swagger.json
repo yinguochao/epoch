@@ -2542,29 +2542,6 @@
         }
       }
     },
-    "/info" : {
-      "get" : {
-        "tags" : [ "external", "debug" ],
-        "description" : "Get node info",
-        "operationId" : "GetInfo",
-        "produces" : [ "application/json" ],
-        "parameters" : [ ],
-        "responses" : {
-          "200" : {
-            "description" : "successful operation",
-            "schema" : {
-              "$ref" : "#/definitions/Info"
-            }
-          },
-          "403" : {
-            "description" : "Info not enabled",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/debug/peers" : {
       "get" : {
         "tags" : [ "internal", "debug" ],
@@ -4228,56 +4205,6 @@
         "genesis_hash" : "genesis_hash",
         "version" : "version",
         "revision" : "revision"
-      }
-    },
-    "Info" : {
-      "type" : "object",
-      "properties" : {
-        "last_30_blocks_time" : {
-          "type" : "array",
-          "items" : {
-            "$ref" : "#/definitions/BlockTimeSummary"
-          }
-        }
-      },
-      "example" : {
-        "last_30_blocks_time" : [ {
-          "difficulty" : 5.962133916683182377482808078639209270477294921875,
-          "time" : 6,
-          "time_delta_to_parent" : 1,
-          "height" : 0
-        }, {
-          "difficulty" : 5.962133916683182377482808078639209270477294921875,
-          "time" : 6,
-          "time_delta_to_parent" : 1,
-          "height" : 0
-        } ]
-      }
-    },
-    "BlockTimeSummary" : {
-      "type" : "object",
-      "properties" : {
-        "height" : {
-          "type" : "integer",
-          "format" : "int64"
-        },
-        "time" : {
-          "type" : "integer",
-          "format" : "int64"
-        },
-        "time_delta_to_parent" : {
-          "type" : "integer",
-          "format" : "int64"
-        },
-        "difficulty" : {
-          "type" : "number"
-        }
-      },
-      "example" : {
-        "difficulty" : 5.962133916683182377482808078639209270477294921875,
-        "time" : 6,
-        "time_delta_to_parent" : 1,
-        "height" : 0
       }
     },
     "Status" : {

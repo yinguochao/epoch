@@ -2148,26 +2148,6 @@ paths:
           schema:
             $ref: '#/definitions/Version'
       security:
-  /info:
-    get:
-      tags:
-        - external
-        - debug
-      operationId: GetInfo
-      description: 'Get node info'
-      produces:
-        - application/json
-      parameters:
-      responses:
-        '200':
-          description: successful operation
-          schema:
-            $ref: '#/definitions/Info'
-        '403':
-          description: Info not enabled
-          schema:
-            $ref: '#/definitions/Error'
-      security:
   /debug/peers:
     get:
       tags:
@@ -3220,27 +3200,6 @@ definitions:
         type: string
       genesis_hash:
         type: string
-  Info:
-    type: object
-    properties:
-      last_30_blocks_time:
-        type: array
-        items:
-          $ref: '#/definitions/BlockTimeSummary'
-  BlockTimeSummary:
-    type: object
-    properties:
-      height:
-        type: integer
-        format: int64
-      time:
-        type: integer
-        format: int64
-      time_delta_to_parent:
-        type: integer
-        format: int64
-      difficulty:
-        type: number
   Status:
     type: object
     properties:

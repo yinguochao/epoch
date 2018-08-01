@@ -131,9 +131,6 @@
     post_broken_base58_tx/1,
 
     % balances
-    all_accounts_balances/1,
-    all_accounts_balances_empty/1,
-    all_accounts_balances_disabled/1,
     balance/1,
     balance_negative_cases/1,
 
@@ -205,7 +202,6 @@
     wrong_http_method_name/1,
     wrong_http_method_balance/1,
     wrong_http_method_tx/1,
-    wrong_http_method_all_accounts_balances/1,
     wrong_http_method_miner_pub_key/1,
     wrong_http_method_list_oracles/1,
     wrong_http_method_list_oracle_queries/1,
@@ -481,9 +477,6 @@ groups() ->
         post_broken_base58_tx,
 
         % balances
-        all_accounts_balances,
-        all_accounts_balances_empty,
-        all_accounts_balances_disabled,
         balance,
         balance_negative_cases,
 
@@ -539,7 +532,6 @@ groups() ->
         wrong_http_method_name,
         wrong_http_method_balance,
         wrong_http_method_tx,
-        wrong_http_method_all_accounts_balances,
         wrong_http_method_miner_pub_key,
         wrong_http_method_list_oracles,
         wrong_http_method_list_oracle_queries,
@@ -3028,75 +3020,6 @@ post_broken_base58_tx(_Config) ->
         lists:seq(1, NumberOfChecks)), % number
     ok.
 
-all_accounts_balances(_Config) ->
-    ok = rpc(aec_conductor, reinit_chain, []),
-    rpc(application, set_env, [aehttp, enable_debug_endpoints, true]),
-    GenesisPresetAccounts = rpc(aec_genesis_block_settings, preset_accounts, []),
-    Receivers = ?DEFAULT_TESTS_COUNT,
-    AmountToSpent = 1,
-    {BlocksToMine0, Fee} = minimal_fee_and_blocks_to_mine(AmountToSpent, Receivers),
-
-    ForkHeight = aecore_suite_utils:latest_fork_height(),
-    BlocksToMine = max(BlocksToMine0, ForkHeight),
-
-    aecore_suite_utils:mine_key_blocks(aecore_suite_utils:node_name(?NODE),
-                                       BlocksToMine),
-    ReceiversAccounts = [{random_hash(), AmountToSpent} || _Idx <- lists:seq(1, Receivers)],
-    lists:foreach(
-        fun({ReceiverPubKey, _}) ->
-            {ok, 200, _} = post_spend_tx(ReceiverPubKey, AmountToSpent, Fee)
-        end,
-        ReceiversAccounts),
-
-    {ok, MinerPubKey} = rpc(aec_keys, pubkey, []),
-    {ok, 200, Txs} =  get_transactions(aec_base58c:encode(account_pubkey, MinerPubKey)),
-    ?assertEqual(Receivers, length(Txs)),
-
-    % mine a block to include the txs
-    {ok, [_KeyBlock, MicroBlock]} = aecore_suite_utils:mine_blocks(
-                                     aecore_suite_utils:node_name(?NODE), 2),
-    {ok, 200, #{<<"accounts_balances">> := BalancesMap}} = get_all_accounts_balances(),
-    {ok, 200, #{<<"nonce">> := Receivers}} = get_account_nonce(aec_base58c:encode(account_pubkey, MinerPubKey)),
-    {ok, MinerBal} = rpc(aec_mining, get_miner_account_balance, []),
-    ExpectedBalances = [{MinerPubKey, MinerBal} | GenesisPresetAccounts] ++  ReceiversAccounts,
-
-    % make sure all spend txs are part of the block
-    AllTxs = aec_blocks:txs(MicroBlock),
-    AllTxsCnt = length(AllTxs),
-    AllTxsCnt = Receivers,
-
-    Balances =
-        lists:map(fun(#{<<"pub_key">> := PKEncoded, <<"balance">> := Bal}) ->
-                          {account_pubkey, AccDec} = aec_base58c:decode(PKEncoded),
-                          {AccDec, Bal}
-                  end, BalancesMap),
-    ?assertEqual(lists:sort(ExpectedBalances), lists:sort(Balances)),
-    ok.
-
-all_accounts_balances_empty(_Config) ->
-    ok = rpc(aec_conductor, reinit_chain, []),
-    rpc(application, set_env, [aehttp, enable_debug_endpoints, true]),
-    GenesisPresetAccounts = rpc(aec_genesis_block_settings, preset_accounts, []),
-    {ok, 200, #{<<"accounts_balances">> := Balances}} = get_all_accounts_balances(),
-    true = length(Balances) =:= length(GenesisPresetAccounts),
-    true =
-        lists:all(
-            fun(#{<<"pub_key">> := PKEncoded, <<"balance">> := Bal}) ->
-                    {account_pubkey, AccDec} = aec_base58c:decode(PKEncoded),
-                Account = {AccDec, Bal},
-                lists:member(Account, GenesisPresetAccounts) end,
-            Balances),
-
-    ForkHeight = aecore_suite_utils:latest_fork_height(),
-    aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE),
-                                   ForkHeight),
-    ok.
-
-all_accounts_balances_disabled(_Config) ->
-    rpc(application, set_env, [aehttp, enable_debug_endpoints, false]),
-    {ok, 403, #{<<"reason">> := <<"Balances not enabled">>}} = get_all_accounts_balances(),
-    ok.
-
 %% positive test of spend_tx is handled in pending_transactions test
 broken_spend_tx(_Config) ->
     ok = rpc(aec_conductor, reinit_chain, []),
@@ -4984,10 +4907,6 @@ post_tx(TxSerialized) ->
     Host = external_address(),
     http_request(Host, post, "tx", #{tx => TxSerialized}).
 
-get_all_accounts_balances() ->
-    Host = external_address(),
-    http_request(Host, get, "balances", []).
-
 get_miner_pub_key() ->
     Host = internal_address(),
     http_request(Host, get, "account/pub-key", []).
@@ -5235,10 +5154,6 @@ wrong_http_method_balance(_Config) ->
 wrong_http_method_tx(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, get, "tx", []).
-
-wrong_http_method_all_accounts_balances(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, post, "balances", []).
 
 wrong_http_method_miner_pub_key(_Config) ->
     Host = internal_address(),

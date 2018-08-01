@@ -2110,28 +2110,6 @@ paths:
           description: Account not found
           schema:
             $ref: '#/definitions/Error'
-
-## CAUTION: debug endpoints, implementation may be inefficient
-  /balances:
-    get:
-      tags:
-        - external
-        - debug
-      operationId: GetAccountsBalances
-      description: 'Get all users'' balances'
-      produces:
-        - application/json
-      parameters:
-      responses:
-        '200':
-          description: successful operation
-          schema:
-            $ref: '#/definitions/AccountsBalances'
-        '403':
-          description: Balances not enabled
-          schema:
-            $ref: '#/definitions/Error'
-      security:
   /debug/peers:
     get:
       tags:
@@ -3160,21 +3138,6 @@ definitions:
     properties:
       pub_key:
         type: string
-  AccountsBalances:
-    type: object
-    properties:
-      accounts_balances:
-        type: array
-        items:
-          $ref: '#/definitions/AccountBalance'
-  AccountBalance:
-    type: object
-    properties:
-      pub_key:
-        type: string
-      balance:
-        type: integer
-        format: int64
   Status:
     type: object
     properties:

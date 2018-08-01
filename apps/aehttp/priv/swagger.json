@@ -2502,29 +2502,6 @@
         }
       }
     },
-    "/balances" : {
-      "get" : {
-        "tags" : [ "external", "debug" ],
-        "description" : "Get all users' balances",
-        "operationId" : "GetAccountsBalances",
-        "produces" : [ "application/json" ],
-        "parameters" : [ ],
-        "responses" : {
-          "200" : {
-            "description" : "successful operation",
-            "schema" : {
-              "$ref" : "#/definitions/AccountsBalances"
-            }
-          },
-          "403" : {
-            "description" : "Balances not enabled",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/debug/peers" : {
       "get" : {
         "tags" : [ "internal", "debug" ],
@@ -4132,42 +4109,6 @@
         }
       },
       "example" : {
-        "pub_key" : "pub_key"
-      }
-    },
-    "AccountsBalances" : {
-      "type" : "object",
-      "properties" : {
-        "accounts_balances" : {
-          "type" : "array",
-          "items" : {
-            "$ref" : "#/definitions/AccountBalance"
-          }
-        }
-      },
-      "example" : {
-        "accounts_balances" : [ {
-          "balance" : 0,
-          "pub_key" : "pub_key"
-        }, {
-          "balance" : 0,
-          "pub_key" : "pub_key"
-        } ]
-      }
-    },
-    "AccountBalance" : {
-      "type" : "object",
-      "properties" : {
-        "pub_key" : {
-          "type" : "string"
-        },
-        "balance" : {
-          "type" : "integer",
-          "format" : "int64"
-        }
-      },
-      "example" : {
-        "balance" : 0,
         "pub_key" : "pub_key"
       }
     },

@@ -21,7 +21,6 @@
 -export([ get_account/1
         , get_account_balance/1
         , get_account_balance_at_hash/2
-        , get_all_accounts_balances/0
         ]).
 
 -export([ version/0
@@ -163,18 +162,6 @@ get_account_balance_at_hash(AccountPubkey, Hash) ->
         none                    -> {error, account_not_found};
         {value, Account}        -> {ok, aec_accounts:balance(Account)}
     end.
-
--spec get_all_accounts_balances() -> {ok, [map()]}.
-get_all_accounts_balances() ->
-    {ok, AccountsBalances} =
-        aec_chain:all_accounts_balances_at_hash(aec_chain:top_block_hash()),
-    FormattedBalances =
-        lists:foldl(
-          fun({Pubkey, Balance}, Acc) ->
-              [#{<<"pub_key">> => Pubkey,
-                 <<"balance">> => Balance} | Acc]
-          end, [], AccountsBalances),
-    {ok, FormattedBalances}.
 
 version() -> {ok, aeu_info:get_version()}.
 

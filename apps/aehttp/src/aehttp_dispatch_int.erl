@@ -280,15 +280,6 @@ handle_request('GetBlockTxsCountByHeight', Req, _Context) ->
     get_block_txs_count(fun() -> aehttp_logic:get_key_block_by_height(Height) end,
                        Req);
 
-handle_request('GetGenesisBlockTxsCount', Req, _Context) ->
-    get_block_txs_count(fun aehttp_logic:get_block_genesis/0, Req);
-
-handle_request('GetLatestBlockTxsCount', Req, _Context) ->
-    get_block_txs_count(fun aehttp_logic:get_block_latest/0, Req);
-
-handle_request('GetPendingBlockTxsCount', Req, _Context) ->
-    get_block_txs_count(fun aehttp_logic:get_block_pending/0, Req);
-
 handle_request('GetTransactionFromBlockHeight', Req, _Context) ->
     Height = maps:get('height', Req),
     Index = maps:get('tx_index', Req),

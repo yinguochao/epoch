@@ -156,9 +156,6 @@
     %% requested Endpoints
     block_txs_count_by_height/1,
     block_txs_count_by_hash/1,
-    block_txs_count_genesis/1,
-    block_txs_count_latest/1,
-    block_txs_count_pending/1,
 
     block_txs_count_by_height_not_found/1,
     block_txs_count_by_hash_not_found/1,
@@ -227,9 +224,6 @@
     wrong_http_method_info/1,
     wrong_http_method_block_txs_count_by_height/1,
     wrong_http_method_block_txs_count_by_hash/1,
-    wrong_http_method_block_txs_count_latest/1,
-    wrong_http_method_block_txs_count_genesis/1,
-    wrong_http_method_block_txs_count_pending/1,
     wrong_http_method_block_tx_by_index_height/1,
     wrong_http_method_block_tx_by_index_hash/1,
     wrong_http_method_block_tx_by_index_latest/1,
@@ -529,9 +523,6 @@ groups() ->
         % requested Endpoints
         block_txs_count_by_height,
         block_txs_count_by_hash,
-        block_txs_count_genesis,
-        block_txs_count_latest,
-        block_txs_count_pending,
 
         block_txs_count_by_height_not_found,
         block_txs_count_by_hash_not_found,
@@ -590,9 +581,6 @@ groups() ->
         wrong_http_method_info,
         wrong_http_method_block_txs_count_by_height,
         wrong_http_method_block_txs_count_by_hash,
-        wrong_http_method_block_txs_count_latest,
-        wrong_http_method_block_txs_count_genesis,
-        wrong_http_method_block_txs_count_pending,
         wrong_http_method_block_tx_by_index_height,
         wrong_http_method_block_tx_by_index_hash,
         wrong_http_method_block_tx_by_index_latest,
@@ -3271,58 +3259,6 @@ block_txs_count_by_hash(_Config) ->
                                      [H]) end,
                         CallApiFun).
 
-block_txs_count_genesis(_Config) ->
-    generic_counts_test(
-        fun(_H) -> {ok, rpc(aec_chain, genesis_block, [])} end,
-        fun(_) -> get_block_txs_count_preset("genesis") end).
-
-block_txs_count_latest(_Config) ->
-    generic_counts_test(
-        fun(_H) ->
-            TopBlock = rpc(aec_chain, top_block, []),
-            {ok, TopBlock}
-        end,
-        fun(_) -> get_block_txs_count_preset("latest") end).
-
-block_txs_count_pending(_Config) ->
-    BlocksToPremine = rpc(aec_governance, key_blocks_to_check_difficulty_count, []),
-    aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE),
-                                   BlocksToPremine),
-        {ok, 404, #{<<"reason">> := <<"Not mining, no pending block">>}} =
-                    get_block_txs_count_preset("pending"),
-    ok = rpc(application, set_env, [aecore, expected_mine_rate,
-                                    60 * 60 * 1000]), % aim at one block an hour
-
-    InsertedTxsCount = length(add_spend_txs()),
-    %% NG: here we start mining again, but the first block must be a key block.
-    %% get_block_txs_count_preset returns the current block candidate - the key block
-    %% being mined which doesn't include any txs.
-    rpc(aec_conductor, start_mining, []),
-    %GetPending =
-    %    fun()->
-    %        aec_test_utils:exec_with_timeout(
-    %           fun TryGetting() ->
-    %              case get_block_txs_count_preset("pending") of
-    %                  {ok, 200, B} -> B;
-    %                  {ok, 404, _} ->
-    %                      timer:sleep(100),
-    %                      TryGetting()
-    %              end
-    %           end,
-    %           10000)
-    %    end,
-    %% NG: in order to get the number of pending txs, we check the mempool
-    GetPending = fun() ->
-                         {ok, 200, Txs} = get_transactions(),
-                         {ok, #{<<"count">> => length(Txs)}}
-                 end,
-    {ok, #{<<"count">> := TxsCount}} = GetPending(),
-    ct:log("Inserted transactions count ~p, transactions count in the pending block ~p",
-           [InsertedTxsCount, TxsCount]),
-    ?assertEqual(InsertedTxsCount, TxsCount),
-    rpc(aec_conductor, stop_mining, []),
-    ok.
-
 generic_counts_test(GetBlock, CallApi) ->
     BlocksToMine = 5,
     {ok, 200, #{<<"height">> := ChainHeight}} = get_top(),
@@ -5597,18 +5533,6 @@ wrong_http_method_block_txs_count_by_height(_Config) ->
 wrong_http_method_block_txs_count_by_hash(_Config) ->
     Host = internal_address(),
     {ok, 405, _} = http_request(Host, post, "block/txs/count/hash/123", []).
-
-wrong_http_method_block_txs_count_latest(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, post, "block/txs/count/latest", []).
-
-wrong_http_method_block_txs_count_genesis(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, post, "block/txs/count/genesis", []).
-
-wrong_http_method_block_txs_count_pending(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, post, "block/txs/count/pending", []).
 
 wrong_http_method_block_tx_by_index_height(_Config) ->
     Host = internal_address(),

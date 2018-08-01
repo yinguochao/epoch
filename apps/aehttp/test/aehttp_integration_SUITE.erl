@@ -157,8 +157,6 @@
     miner_pub_key/1,
 
     %% requested Endpoints
-    block_number/1,
-
     block_txs_count_by_height/1,
     block_txs_count_by_hash/1,
     block_txs_count_genesis/1,
@@ -230,7 +228,6 @@
     wrong_http_method_miner_pub_key/1,
     wrong_http_method_version/1,
     wrong_http_method_info/1,
-    wrong_http_method_block_number/1,
     wrong_http_method_block_latest/1,
     wrong_http_method_block_genesis/1,
     wrong_http_method_block_txs_count_by_height/1,
@@ -539,8 +536,6 @@ groups() ->
         miner_pub_key,
 
         % requested Endpoints
-        block_number,
-
         block_txs_count_by_height,
         block_txs_count_by_hash,
         block_txs_count_genesis,
@@ -602,7 +597,6 @@ groups() ->
         wrong_http_method_miner_pub_key,
         wrong_http_method_version,
         wrong_http_method_info,
-        wrong_http_method_block_number,
         wrong_http_method_block_latest,
         wrong_http_method_block_genesis,
         wrong_http_method_block_txs_count_by_height,
@@ -3232,21 +3226,6 @@ peer_pub_key(_Config) ->
     {ok, PeerPubKey} = aec_base58c:safe_decode(peer_pubkey, EncodedPubKey),
     ok.
 
-block_number(_Config) ->
-    ok = rpc(aec_conductor, reinit_chain, []),
-    ForkHeight = aecore_suite_utils:latest_fork_height(),
-    TopHeader = rpc(aec_chain, top_header, []),
-    0 = aec_headers:height(TopHeader),
-    {ok, 200, #{<<"height">> := 0}} = get_block_number(),
-    lists:foreach(
-        fun(ExpectedNum) ->
-            aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), 1),
-            {ok, 200, #{<<"height">> := Num}} = get_block_number(),
-            ExpectedNum = Num
-        end,
-        lists:seq(1, max(?DEFAULT_TESTS_COUNT, ForkHeight))),
-    ok.
-
 block_genesis(_Config) ->
     GetExpectedBlockFun =
         fun(_H) ->
@@ -5378,10 +5357,6 @@ get_info() ->
     Host = external_address(),
     http_request(Host, get, "info", []).
 
-get_block_number() ->
-    Host = internal_address(),
-    http_request(Host, get, "block/number", []).
-
 get_internal_block_preset(Segment) ->
     Host = external_address(),
     http_request(Host, get, "block/" ++ Segment, []).
@@ -5667,10 +5642,6 @@ wrong_http_method_version(_Config) ->
 wrong_http_method_info(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, post, "info", []).
-
-wrong_http_method_block_number(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, post, "block/number", []).
 
 wrong_http_method_block_by_height(_Config) ->
     Host = external_address(),

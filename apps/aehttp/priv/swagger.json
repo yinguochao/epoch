@@ -2588,23 +2588,6 @@
         }
       }
     },
-    "/block/number" : {
-      "get" : {
-        "tags" : [ "internal", "chain" ],
-        "description" : "Get the current block's height",
-        "operationId" : "GetBlockNumber",
-        "produces" : [ "application/json" ],
-        "parameters" : [ ],
-        "responses" : {
-          "200" : {
-            "description" : "The current block's height",
-            "schema" : {
-              "$ref" : "#/definitions/BlockHeight"
-            }
-          }
-        }
-      }
-    },
     "/block/height/{height}" : {
       "get" : {
         "tags" : [ "external", "chain" ],
@@ -4608,20 +4591,6 @@
         "difficulty" : 5.962133916683182377482808078639209270477294921875,
         "time" : 6,
         "time_delta_to_parent" : 1,
-        "height" : 0
-      }
-    },
-    "BlockHeight" : {
-      "type" : "object",
-      "required" : [ "height" ],
-      "properties" : {
-        "height" : {
-          "type" : "integer",
-          "format" : "int64",
-          "description" : "Blocks's height"
-        }
-      },
-      "example" : {
         "height" : 0
       }
     },

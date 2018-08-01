@@ -266,10 +266,6 @@ handle_request('GetPubKey', _, _Context) ->
             {404, [], #{reason => <<"Keys not configured">>}}
     end;
 
-handle_request('GetBlockNumber', _Req, _Context) ->
-    {ok, Height} = aehttp_logic:get_top_height(),
-    {200, [], #{height => Height}};
-
 handle_request('GetBlockTxsCountByHash', Req, _Context) ->
     case aec_base58c:safe_decode(block_hash, maps:get('hash', Req)) of
         {error, _} ->

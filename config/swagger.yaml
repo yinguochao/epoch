@@ -2189,22 +2189,6 @@ paths:
             $ref: '#/definitions/Error'
       security:
 
-  /block/number:
-    get:
-      tags:
-        - internal
-        - chain
-      operationId: GetBlockNumber
-      description: 'Get the current block''s height'
-      produces:
-        - application/json
-      parameters:
-      responses:
-        '200':
-          description: 'The current block''s height'
-          schema:
-            $ref: '#/definitions/BlockHeight'
-      security:
   /block/height/{height}:
     get:
       tags:
@@ -3548,15 +3532,6 @@ definitions:
         format: int64
       difficulty:
         type: number
-  BlockHeight:
-    type: object
-    properties:
-      height:
-        type: integer
-        format: int64
-        description: 'Blocks''s height'
-    required:
-    - height
   Status:
     type: object
     properties:

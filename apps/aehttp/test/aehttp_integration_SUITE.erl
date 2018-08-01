@@ -214,7 +214,6 @@
     wrong_http_method_name_revoke/1,
     wrong_http_method_block_by_height/1,
     wrong_http_method_block_by_hash/1,
-    wrong_http_method_header_by_hash/1,
     wrong_http_method_transactions/1,
     wrong_http_method_tx_id/1,
     wrong_http_method_spend_tx/1,
@@ -587,7 +586,6 @@ groups() ->
         wrong_http_method_name_revoke,
         wrong_http_method_block_by_height,
         wrong_http_method_block_by_hash,
-        wrong_http_method_header_by_hash,
         wrong_http_method_transactions,
         wrong_http_method_tx_id,
         wrong_http_method_spend_tx,
@@ -5605,10 +5603,6 @@ wrong_http_method_name_revoke(_Config) ->
 wrong_http_method_block_by_hash(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, post, "block/hash/123", []).
-
-wrong_http_method_header_by_hash(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, post, "header-by-hash", []).
 
 wrong_http_method_transactions(_Config) ->
     Host = external_address(),

@@ -51,7 +51,7 @@ paths:
         '200':
           description: 'Successful operation'
           schema:
-            $ref: '#/definitions/Top'
+            $ref: '#/definitions/KeyBlock'
       security:
   /blocks/top:
     get:
@@ -67,7 +67,7 @@ paths:
         '200':
           description: 'Successful operation'
           schema:
-            $ref: '#/definitions/Top'
+            $ref: '#/definitions/KeyBlock'
       security:
   /key-blocks/current:
     get:
@@ -83,7 +83,7 @@ paths:
         '200':
           description: 'Successful operation'
           schema:
-            $ref: '#/definitions/GenericBlock'
+            $ref: '#/definitions/KeyBlock'
       security:
   /key-blocks/current/hash:
     get:
@@ -140,7 +140,7 @@ paths:
         '200':
           description: 'Successful operation'
           schema:
-            $ref: '#/definitions/GenericBlock'
+            $ref: '#/definitions/KeyBlock'
         '404':
           description: 'No pending block (node not mining)'
           schema:
@@ -165,7 +165,7 @@ paths:
         '200':
           description: 'Successful operation'
           schema:
-            $ref: '#/definitions/GenericBlock'
+            $ref: '#/definitions/KeyBlock'
         '400':
           description: 'Invalid hash'
           schema:
@@ -194,7 +194,7 @@ paths:
         '200':
           description: 'Successful operation'
           schema:
-            $ref: '#/definitions/GenericBlock'
+            $ref: '#/definitions/KeyBlock'
         '404':
           description: 'Block not found'
           schema:
@@ -830,61 +830,6 @@ paths:
             $ref: '#/definitions/Status'
       security:
 
-  /header-by-hash:
-    get:
-      tags:
-        - external
-        - gossip
-      operationId: GetHeaderByHash
-      description: 'Get a header by hash'
-      produces:
-        - application/json
-      parameters:
-        - in: query
-          name: hash
-          description: 'Hash of the block header to fetch'
-          required: true
-          type: string
-      responses:
-        '200':
-          description: The header found
-          schema:
-            $ref: '#/definitions/Header'
-        '400':
-          description: Invalid hash
-          schema:
-            $ref: '#/definitions/Error'
-        '404':
-          description: Header not found
-          schema:
-            $ref: '#/definitions/Error'
-      security:
-  /header-by-height:
-    get:
-      tags:
-        - external
-        - gossip
-      operationId: GetKeyHeaderByHeight
-      description: 'Get a key header by its height in the chain'
-      produces:
-        - application/json
-      parameters:
-        - in: query
-          name: height
-          description: 'Height of the header to fetch'
-          required: true
-          type: integer
-          minimum: 0
-      responses:
-        '200':
-          description: The header found
-          schema:
-            $ref: '#/definitions/Header'
-        '400':
-          description: Header not found
-          schema:
-            $ref: '#/definitions/Error'
-      security:
   /tx:
     post:
       tags:
@@ -2279,7 +2224,7 @@ paths:
         '200':
           description: The block being found
           schema:
-            $ref: '#/definitions/GenericBlock'
+            $ref: '#/definitions/KeyBlock'
         '404':
           description: Block not found
           schema:
@@ -2304,7 +2249,7 @@ paths:
         '200':
           description: The block being found
           schema:
-            $ref: '#/definitions/GenericBlock'
+            $ref: '#/definitions/KeyBlock'
         '400':
           description: Invalid hash
           schema:
@@ -2327,7 +2272,7 @@ paths:
         '200':
           description: The genesis block
           schema:
-            $ref: '#/definitions/GenericBlock'
+            $ref: '#/definitions/KeyBlock'
       security:
   /block/latest:
     get:
@@ -2342,7 +2287,7 @@ paths:
         '200':
           description: The top block
           schema:
-            $ref: '#/definitions/GenericBlock'
+            $ref: '#/definitions/KeyBlock'
       security:
   /block/txs/count/hash/{hash}:
     get:
@@ -2750,9 +2695,11 @@ definitions:
   Uri:
     type: string
     ## format: uri
-  Header:
+  KeyBlock:
     type: object
     properties:
+      hash:
+        $ref: '#/definitions/EncodedHash'
       height:
         type: integer
         format: int64
@@ -2767,25 +2714,19 @@ definitions:
         format: int64
       nonce:
         type: integer
-        format: uint64
+        format: int64
       time:
         type: integer
         format: int64
       version:
         type: integer
+        format: int64
       pow:
         $ref: '#/definitions/Pow'
       miner:
         $ref: '#/definitions/EncodedHash'
       beneficiary:
         $ref: '#/definitions/EncodedHash'
-  GenericBlock:
-    allOf:
-      - $ref: '#/definitions/Header'
-      - type: object
-        properties:
-          hash:
-            $ref: '#/definitions/EncodedHash'
   MicroBlockHeader:
     type: object
     properties:
@@ -2808,13 +2749,6 @@ definitions:
       version:
         type: integer
         format: int64
-  Top:
-    allOf:
-      - $ref: '#/definitions/Header'
-      - type: object
-        properties:
-          hash:
-            type: string
   GenericTxs:
     type: object
     properties:
@@ -4159,7 +4093,7 @@ definitions:
     type: object
     properties:
       key_block:
-        $ref: '#/definitions/GenericBlock'
+        $ref: '#/definitions/KeyBlock'
       micro_blocks:
         type: array
         items:

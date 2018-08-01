@@ -106,7 +106,6 @@
 -export(
    [
     % get block-s
-    block_pending/1,
     block_by_height/1,
     block_not_found_by_height/1,
     block_by_hash/1,
@@ -484,8 +483,6 @@ groups() ->
      {external_endpoints, [sequence],
       [
         % get block-s
-        %block_pending,  TODO: delete the test case in the next PR
-
         block_by_height,
         block_not_found_by_height,
         block_by_hash,
@@ -3218,24 +3215,6 @@ peer_pub_key(_Config) ->
     {ok, PeerPubKey} = aec_base58c:safe_decode(peer_pubkey, EncodedPubKey),
     ok.
 
-%% we need really slow mining; since mining speed is not modified for the
-%% first X blocks, we need to premine them before the test
-block_pending(_Config) ->
-    BlocksToPremine = rpc(aec_governance, key_blocks_to_check_difficulty_count, []),
-    aecore_suite_utils:mine_key_blocks(aecore_suite_utils:node_name(?NODE),
-                                       BlocksToPremine),
-    {ok, 404, #{<<"reason">> := <<"Not mining, no pending block">>}} =
-            get_internal_block_preset("pending"),
-    ok = rpc(application, set_env, [aecore, expected_mine_rate,
-                                    60 * 60 * 1000]), % aim at one block an hour
-    add_spend_txs(),
-    rpc(aec_conductor, start_mining, []),
-    timer:sleep(100),% so the miner is started
-    {ok, PendingBlock} = get_pending_block(),
-    ct:log("Expected pending block ~p", [block_to_endpoint_map(PendingBlock)]),
-    rpc(aec_conductor, stop_mining, []),
-    ok.
-
 internal_get_block_generic(GetExpectedBlockFun, CallApiFun) ->
     ok = rpc(aec_conductor, reinit_chain, []),
     ForkHeight = aecore_suite_utils:latest_fork_height(),
@@ -5325,10 +5304,6 @@ get_info() ->
     Host = external_address(),
     http_request(Host, get, "info", []).
 
-get_internal_block_preset(Segment) ->
-    Host = external_address(),
-    http_request(Host, get, "block/" ++ Segment, []).
-
 get_block_txs_count_by_height(Height) ->
     Host = internal_address(),
     http_request(Host, get, "block/txs/count/height/" ++ integer_to_list(Height),
@@ -5818,23 +5793,6 @@ block_hash_by_height(Height) ->
     {ok, HBin} = aec_blocks:hash_internal_representation(B),
     Hash = binary_to_list(aec_base58c:encode(block_hash, HBin)),
     {ok, Hash}.
-
--spec get_pending_block() -> {error, no_candidate}
-                           | {error, not_mining}
-                           | {ok, term()}.
-get_pending_block() ->
-    aec_test_utils:exec_with_timeout(
-        fun TryGetting() ->
-            case rpc(aec_conductor, get_key_block_candidate, []) of
-                {ok, OK} -> OK;
-                {error, not_mining} = Err->
-                    Err;
-                {error, miner_starting} ->
-                    timer:sleep(10),
-                    TryGetting()
-            end
-        end,
-        10000).
 
 add_spend_txs() ->
     MineReward = rpc(aec_governance, block_mine_reward, []),

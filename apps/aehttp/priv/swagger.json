@@ -2525,35 +2525,6 @@
         }
       }
     },
-    "/block/height/{height}" : {
-      "get" : {
-        "tags" : [ "external", "chain" ],
-        "description" : "Get a key block by height",
-        "operationId" : "GetKeyBlockByHeightObsolete",
-        "produces" : [ "application/json" ],
-        "parameters" : [ {
-          "name" : "height",
-          "in" : "path",
-          "description" : "Height of the block to fetch",
-          "required" : true,
-          "type" : "integer"
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "The block being found",
-            "schema" : {
-              "$ref" : "#/definitions/KeyBlock"
-            }
-          },
-          "404" : {
-            "description" : "Block not found",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/block/hash/{hash}" : {
       "get" : {
         "tags" : [ "external", "chain" ],

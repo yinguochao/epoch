@@ -106,8 +106,6 @@
 -export(
    [
     % get block-s
-    block_by_height/1,
-    block_not_found_by_height/1,
     block_by_hash/1,
     block_not_found_by_broken_hash/1,
     block_not_found_by_hash/1,
@@ -188,7 +186,6 @@
     wrong_http_method_name_update/1,
     wrong_http_method_name_transfer/1,
     wrong_http_method_name_revoke/1,
-    wrong_http_method_block_by_height/1,
     wrong_http_method_block_by_hash/1,
     wrong_http_method_transactions/1,
     wrong_http_method_tx_id/1,
@@ -453,8 +450,6 @@ groups() ->
      {external_endpoints, [sequence],
       [
         % get block-s
-        block_by_height,
-        block_not_found_by_height,
         block_by_hash,
         block_not_found_by_hash,
 
@@ -518,7 +513,6 @@ groups() ->
         wrong_http_method_name_update,
         wrong_http_method_name_transfer,
         wrong_http_method_name_revoke,
-        wrong_http_method_block_by_height,
         wrong_http_method_block_by_hash,
         wrong_http_method_transactions,
         wrong_http_method_tx_id,
@@ -1830,25 +1824,6 @@ save_config([], _Config, Acc) ->
 
 
 %% enpoints
-
-block_by_height(_Config) ->
-    GetExpectedBlockFun =
-        fun(H) -> rpc(aec_chain, get_key_block_by_height, [H]) end,
-    CallApiFun = fun get_block_by_height/1,
-    internal_get_block_generic(GetExpectedBlockFun, CallApiFun).
-
-block_not_found_by_height(_Config) ->
-    ok = rpc(aec_conductor, reinit_chain, []),
-    lists:foreach(
-        fun(H) ->
-            {ok, 404, #{<<"reason">> := <<"Chain too short">>}} =
-                get_block_by_height(H)
-        end,
-        lists:seq(1, ?DEFAULT_TESTS_COUNT)),
-
-    ToMine = aecore_suite_utils:latest_fork_height(),
-    aecore_suite_utils:mine_key_blocks(aecore_suite_utils:node_name(?NODE), ToMine),
-    ok.
 
 block_not_found_by_hash(_Config) ->
     lists:foreach(
@@ -3400,7 +3375,7 @@ ws_get_genesis(_Config) ->
     {ok, ConnPid} = ws_start_link(),
     {_Tag, #{ <<"block">> := Block }} =
         ws_chain_get(ConnPid, #{height => 0, type => block}),
-    {ok, 200, BlockMap} = get_block_by_height(0),
+    {ok, 200, BlockMap} = get_key_blocks_by_height_sut(0),
     ExpectedBlockMap = maps:remove(<<"hash">>, BlockMap),
     ?assertEqual(ExpectedBlockMap, Block),
 
@@ -4808,10 +4783,6 @@ get_channel_settle(Data) ->
     Host = external_address(),
     http_request(Host, post, "tx/channel/settle", Data).
 
-get_block_by_height(Height) ->
-    Host = external_address(),
-    http_request(Host, get, "block/height/" ++ integer_to_list(Height), []).
-
 get_block_by_hash(Hash) ->
     Host = external_address(),
     http_request(Host, get, "block/hash/" ++ http_uri:encode(Hash), []).
@@ -5149,10 +5120,6 @@ wrong_http_method_tx(_Config) ->
 wrong_http_method_miner_pub_key(_Config) ->
     Host = internal_address(),
     {ok, 405, _} = http_request(Host, post, "account/pub-key", []).
-
-wrong_http_method_block_by_height(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, post, "block/height/123", []).
 
 wrong_http_method_list_oracles(_Config) ->
     Host = internal_address(),

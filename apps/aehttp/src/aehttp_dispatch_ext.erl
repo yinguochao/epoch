@@ -393,11 +393,6 @@ handle_request('GetStatus', _Params, _Context) ->
        <<"peer-count">>                 => PeerCount,
        <<"pending-transactions-count">> => PendingTxsCount}};
 
-handle_request('GetKeyBlockByHeightObsolete', Req, _Context) ->
-    Height = maps:get('height', Req),
-    get_block(fun() -> aehttp_logic:get_key_block_by_height(Height) end, Req);
-
-
 handle_request('GetBlockByHash', Req, _Context) ->
     case aec_base58c:safe_decode(block_hash, maps:get('hash', Req)) of
         {error, _} ->

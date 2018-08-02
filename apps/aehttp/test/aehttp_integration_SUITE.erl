@@ -105,11 +105,6 @@
 %% external endpoints
 -export(
    [
-    % get block-s
-    block_by_hash/1,
-    block_not_found_by_broken_hash/1,
-    block_not_found_by_hash/1,
-
     % non signed txs
     contract_transactions/1,
     contract_create_compute_transaction/1,
@@ -186,7 +181,6 @@
     wrong_http_method_name_update/1,
     wrong_http_method_name_transfer/1,
     wrong_http_method_name_revoke/1,
-    wrong_http_method_block_by_hash/1,
     wrong_http_method_transactions/1,
     wrong_http_method_tx_id/1,
     wrong_http_method_spend_tx/1,
@@ -449,10 +443,6 @@ groups() ->
       ]},
      {external_endpoints, [sequence],
       [
-        % get block-s
-        block_by_hash,
-        block_not_found_by_hash,
-
         % non signed txs
         contract_transactions,
         contract_create_compute_transaction,
@@ -513,7 +503,6 @@ groups() ->
         wrong_http_method_name_update,
         wrong_http_method_name_transfer,
         wrong_http_method_name_revoke,
-        wrong_http_method_block_by_hash,
         wrong_http_method_transactions,
         wrong_http_method_tx_id,
         wrong_http_method_spend_tx,
@@ -1825,44 +1814,13 @@ save_config([], _Config, Acc) ->
 
 %% enpoints
 
-block_not_found_by_hash(_Config) ->
-    lists:foreach(
-        fun(_Height) ->
-            H = random_hash(),
-            error = rpc(aec_chain, get_block, [H]),
-            Hash = aec_base58c:encode(block_hash, H),
-            {ok, 404, #{<<"reason">> := <<"Block not found">>}}
-                = get_block_by_hash(Hash)
-        end,
-        lists:seq(1, ?DEFAULT_TESTS_COUNT)),
-    ok.
-
-block_not_found_by_broken_hash(_Config) ->
-    lists:foreach(
-        fun(_) ->
-            <<_, BrokenHash/binary>> = aec_base58c:encode(block_hash, random_hash()),
-            {ok, 400, #{<<"reason">> := <<"Invalid hash">>}} =
-                get_block_by_hash(BrokenHash)
-        end,
-        lists:seq(1, ?DEFAULT_TESTS_COUNT)),
-    ok.
-
-block_by_hash(_Config) ->
-    GetExpectedBlockFun =
-        fun(H) -> rpc(aec_chain, get_key_block_by_height, [H]) end,
-    CallApiFun =
-        fun(H) ->
-            {ok, Hash} = block_hash_by_height(H),
-            get_block_by_hash(Hash)
-        end,
-    internal_get_block_generic(GetExpectedBlockFun, CallApiFun).
-
 %% tests the following
 %% GET contract_create_tx unsigned transaction
 %% GET contract_call_tx unsigned transaction
 %% due to complexity of contract_call_tx (needs a contract in the state tree)
 %% both positive and negative cases are tested in this test
 contract_transactions(_Config) ->    % miner has an account
+    aecore_suite_utils:mine_key_blocks(aecore_suite_utils:node_name(?NODE), 1),
     {ok, 200, _} = get_balance_at_top(),
     {ok, 200, #{<<"pub_key">> := MinerAddress}} = get_miner_pub_key(),
     {ok, MinerPubkey} = aec_base58c:safe_decode(account_pubkey, MinerAddress),
@@ -3021,47 +2979,6 @@ peer_pub_key(_Config) ->
     ct:log("PeerPubkey = ~p~nEncodedPubKey = ~p", [PeerPubKey,
                                                     EncodedPubKey]),
     {ok, PeerPubKey} = aec_base58c:safe_decode(peer_pubkey, EncodedPubKey),
-    ok.
-
-internal_get_block_generic(GetExpectedBlockFun, CallApiFun) ->
-    ok = rpc(aec_conductor, reinit_chain, []),
-    ForkHeight = aecore_suite_utils:latest_fork_height(),
-    aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE),
-                                   ForkHeight),
-    BlocksToCheck = 4,
-    CheckAtHeight =
-        fun(Height) ->
-            {ok, ExpectedBlock} = GetExpectedBlockFun(Height),
-            Specific =
-                fun(DataSchema) ->
-                    {ok, Hash} =
-                        aec_blocks:hash_internal_representation(ExpectedBlock),
-                    #{<<"hash">> => aec_base58c:encode(block_hash, Hash)}
-                end,
-            ExpectedBlockMap = maps:merge(Specific(<<"BlockWithMsgPackTxs">>),
-                block_to_endpoint_map(ExpectedBlock)),
-            {ok, 200, BlockMap} = CallApiFun(Height),
-            ct:log("ExpectedBlockMap ~p, BlockMap: ~p", [ExpectedBlockMap,
-                                                         BlockMap])
-        end,
-    MinBlockHeightToCheck =
-        case ForkHeight of
-            0 ->
-                aecore_suite_utils:mine_blocks(
-                  aecore_suite_utils:node_name(?NODE), 1),
-                1; % from first block with reward
-            _ when is_integer(ForkHeight), ForkHeight > 0 ->
-                ForkHeight % from latest fork
-        end,
-    lists:foreach(
-        fun(Height) ->
-            {ok, 200, #{<<"height">> := Height}} = get_top(),
-            CheckAtHeight(Height),
-            % prepare the next block
-            add_spend_txs(),
-            aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), 1)
-        end,
-        lists:seq(MinBlockHeightToCheck, ForkHeight + BlocksToCheck)),
     ok.
 
 naming_system_manage_name(_Config) ->
@@ -4674,10 +4591,6 @@ ws_mine_key_and_micro_block(ConnPid, Node) ->
 %% HTTP Requests
 %% ============================================================
 
-get_top() ->
-    Host = external_address(),
-    http_request(Host, get, "blocks/top", []).
-
 get_contract_create(Data) ->
     Host = external_address(),
     http_request(Host, post, "tx/contract/create", Data).
@@ -4782,10 +4695,6 @@ get_channel_slash(Data) ->
 get_channel_settle(Data) ->
     Host = external_address(),
     http_request(Host, post, "tx/channel/settle", Data).
-
-get_block_by_hash(Hash) ->
-    Host = external_address(),
-    http_request(Host, get, "block/hash/" ++ http_uri:encode(Hash), []).
 
 get_transactions() ->
     Host = external_address(),
@@ -5065,10 +4974,6 @@ wrong_http_method_name_revoke(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, get, "tx/name/revoke", []).
 
-wrong_http_method_block_by_hash(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, post, "block/hash/123", []).
-
 wrong_http_method_transactions(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, post, "transactions", []).
@@ -5248,28 +5153,6 @@ process_http_return(R) ->
         {error, _} = Error ->
             Error
     end.
-
-block_to_endpoint_map(Block) ->
-    BMap = aehttp_api_parser:encode_client_readable_block(Block),
-    Expected = aehttp_logic:cleanup_genesis(BMap),
-
-    %% Validate that all transactions have the correct block height and hash
-    ExpectedTxs = maps:get(<<"transactions">>, Expected, []),
-    BlockHeight = aec_blocks:height(Block),
-    {ok, BlockHash} = aec_blocks:hash_internal_representation(Block),
-    lists:foreach(
-        fun({EncodedTx, SignedTx}) ->
-            #{block_hash := TxBlockHash,
-              block_height := TxBlockHeight,
-              hash := Hash} =
-                  aetx_sign:meta_data_from_client_serialized(EncodedTx),
-            {BlockHeight, TxBlockHeight} = {TxBlockHeight, BlockHeight},
-            {BlockHash, TxBlockHash} = {TxBlockHash, BlockHash},
-            TxHash = aetx_sign:hash(SignedTx),
-            {Hash, TxHash} = {TxHash, Hash}
-        end,
-        lists:zip(ExpectedTxs, aec_blocks:txs(Block))),
-    Expected.
 
 random_hash() ->
     HList =

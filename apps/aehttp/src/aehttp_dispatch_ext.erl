@@ -393,14 +393,6 @@ handle_request('GetStatus', _Params, _Context) ->
        <<"peer-count">>                 => PeerCount,
        <<"pending-transactions-count">> => PendingTxsCount}};
 
-handle_request('GetBlockByHash', Req, _Context) ->
-    case aec_base58c:safe_decode(block_hash, maps:get('hash', Req)) of
-        {error, _} ->
-            {400, [], #{reason => <<"Invalid hash">>}};
-        {ok, Hash} ->
-            get_block(fun() -> aehttp_logic:get_block_by_hash(Hash) end, Req)
-    end;
-
 handle_request('GetTxs', _Req, _Context) ->
     {ok, Txs0} = aec_tx_pool:peek(infinity),
     lager:debug("GetTxs : ~p", [pp(Txs0)]),

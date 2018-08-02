@@ -4820,11 +4820,6 @@ get_transactions() ->
     Host = external_address(),
     http_request(Host, get, "transactions", []).
 
-get_transactions(EncodedPubKey) ->
-    Host = external_address(),
-    http_request(Host, get, "account/" ++ binary_to_list(EncodedPubKey) ++ "/pending_transactions", []).
-
-
 get_tx(TxHash) ->
     Host = external_address(),
     http_request(Host, get, "tx/" ++ binary_to_list(TxHash), []).
@@ -4898,10 +4893,6 @@ get_balance(EncodedPubKey, Params) ->
     Host = external_address(),
     http_request(Host, get, "account/" ++ binary_to_list(EncodedPubKey) ++ "/balance",
                  Params).
-
-get_account_nonce(EncodedPubKey) ->
-    Host = external_address(),
-    http_request(Host, get, "account/" ++ binary_to_list(EncodedPubKey) ++ "/nonce", []).
 
 post_tx(TxSerialized) ->
     Host = external_address(),

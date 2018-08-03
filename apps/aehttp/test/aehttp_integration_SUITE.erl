@@ -183,7 +183,6 @@
     wrong_http_method_name_revoke/1,
     wrong_http_method_transactions/1,
     wrong_http_method_tx_id/1,
-    wrong_http_method_spend_tx/1,
     wrong_http_method_name_preclaim_tx/1,
     wrong_http_method_name_claim_tx/1,
     wrong_http_method_name_update_tx/1,
@@ -505,7 +504,6 @@ groups() ->
         wrong_http_method_name_revoke,
         wrong_http_method_transactions,
         wrong_http_method_tx_id,
-        wrong_http_method_spend_tx,
         wrong_http_method_name_preclaim_tx,
         wrong_http_method_name_claim_tx,
         wrong_http_method_name_update_tx,
@@ -769,8 +767,12 @@ init_per_group(channel_websocket = Group, Config) ->
 
     aecore_suite_utils:mine_key_blocks(Node, BlocksToMine),
 
-    {ok, 200, _} = post_spend_tx(IPubkey, IStartAmt, Fee),
-    {ok, 200, _} = post_spend_tx(RPubkey, RStartAmt, Fee),
+    {ok, 200, #{<<"tx">> := SpendTx1}} =
+        post_spend_tx(aec_base58c:encode(account_pubkey, IPubkey), IStartAmt, Fee),
+    sign_and_post_tx(SpendTx1),
+    {ok, 200, #{<<"tx">> := SpendTx2}} =
+        post_spend_tx(aec_base58c:encode(account_pubkey, RPubkey), RStartAmt, Fee),
+    sign_and_post_tx(SpendTx2),
     {ok, [_KeyBlock, MicroBlock]} = aecore_suite_utils:mine_blocks(Node, 2),
     [_Spend1, _Spend2] = aec_blocks:txs(MicroBlock),
     assert_balance(IPubkey, IStartAmt),
@@ -2070,7 +2072,8 @@ contract_transactions(_Config) ->    % miner has an account
                                            ComputeCCallEncoded)),
 
     %% Call objects
-    {ok, 200, #{<<"tx_hash">> := SpendTxHash}} = post_spend_tx(MinerPubkey, 1, 1),
+    {ok, 200, #{<<"tx">> := SpendTx}} = post_spend_tx(MinerAddress, 1, 1),
+    SpendTxHash = sign_and_post_tx(SpendTx),
     ok = wait_for_tx_hash_on_chain(SpendTxHash),
     {ok, 400, #{<<"reason">> := <<"Tx is not a create or call">>}} =
         get_contract_call_object(SpendTxHash),
@@ -2826,7 +2829,7 @@ get_transaction(_Config) ->
 %% Maybe this test should be broken into a couple of smaller tests
 %% it currently tests the positive cases for
 %% GET externalAPI/transactions
-%% POST internalAPI/spend-tx
+%% POST externalAPI/tx/spend
 %% GET externalAPI/account/balance
 pending_transactions(_Config) ->
     {ok, []} = rpc(aec_tx_pool, peek, [infinity]), % empty
@@ -2856,7 +2859,9 @@ pending_transactions(_Config) ->
     {ok, 404, #{<<"reason">> := <<"Account not found">>}} =
                   get_balance_at_top(aec_base58c:encode(account_pubkey, ReceiverPubKey)),
 
-    {ok, 200, _} = post_spend_tx(ReceiverPubKey, AmountToSpent, Fee),
+    {ok, 200, #{<<"tx">> := SpendTx}} =
+        post_spend_tx(aec_base58c:encode(account_pubkey, ReceiverPubKey), AmountToSpent, Fee),
+    sign_and_post_tx(SpendTx),
     {ok, NodeTxs} = rpc(aec_tx_pool, peek, [infinity]),
     true = length(NodeTxs) =:= 1, % not empty anymore
     {ok, 200, ReturnedTxs} = get_transactions(),
@@ -2958,7 +2963,7 @@ broken_spend_tx(_Config) ->
     ok = rpc(aec_conductor, reinit_chain, []),
     {ok, 404, #{<<"reason">> := <<"Account not found">>}} = get_balance_at_top(),
     ReceiverPubKey = random_hash(),
-    {ok, 404, _} = post_spend_tx(ReceiverPubKey, 42, 2),
+    {ok, 404, _} = post_spend_tx(aec_base58c:encode(account_pubkey, ReceiverPubKey), 42, 2),
 
     ForkHeight = aecore_suite_utils:latest_fork_height(),
     aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE),
@@ -3161,7 +3166,10 @@ list_oracles(_Config) ->
     KeyPairs = [ KeyPair() || _ <- lists:seq(1, 5) ],
 
     %% Transfer some funds to these accounts
-    [ post_spend_tx(Receiver, 9, 1) || {Receiver, _} <- KeyPairs ],
+    [ begin
+          {ok, 200, #{<<"tx">> := SpendTx}} = post_spend_tx(aec_base58c:encode(account_pubkey, Receiver), 9, 1),
+          sign_and_post_tx(SpendTx)
+      end  || {Receiver, _} <- KeyPairs ],
 
     %% Mine a block to effect this
     aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), 2),
@@ -3204,8 +3212,12 @@ list_oracle_queries(_Config) ->
     {APubKey, APrivKey} = KeyPair(),
 
     %% Transfer some funds to these accounts
-    [ post_spend_tx(Receiver, 9, 1) || {Receiver, _} <- OKeyPairs ],
-    post_spend_tx(APubKey, 79, 1),
+    [ begin
+          {ok, 200, #{<<"tx">> := SpendTx}} = post_spend_tx(aec_base58c:encode(account_pubkey, Receiver), 9, 1),
+          sign_and_post_tx(SpendTx)
+      end || {Receiver, _} <- OKeyPairs ],
+    {ok, 200, #{<<"tx">> := SpendTx}} = post_spend_tx(aec_base58c:encode(account_pubkey, APubKey), 79, 1),
+    sign_and_post_tx(SpendTx),
 
     %% Mine a block to effect this
     aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), 2),
@@ -3338,7 +3350,9 @@ ws_micro_block_added(_Config) ->
     {_Height0, _KeyBlockHash0} = ws_mine_key_block(ConnPid, ?NODE, 1),
 
     %% 1 tx in the mempool, so micro block will be generated.
-    {ok, 200, _} = post_spend_tx(random_hash(), 1, 1),
+    {ok, 200, #{<<"tx">> := SpendTx}} =
+        post_spend_tx(aec_base58c:encode(account_pubkey, random_hash()), 1, 1),
+    sign_and_post_tx(SpendTx),
 
     %% Register for added_micro_block events
     ws_subscribe(ConnPid, #{ type => added_micro_block }),
@@ -3438,7 +3452,9 @@ ws_tx_on_chain(_Config) ->
     {ok, 200, #{ <<"pub_key">> := PK }} = get_miner_pub_key(),
 
     %% Post spend tx
-    {ok, 200, #{<<"tx_hash">> := TxHash}} = post_spend_tx(random_hash(), 3, 1),
+    {ok, 200, #{<<"tx">> := Tx}} =
+        post_spend_tx(aec_base58c:encode(account_pubkey, random_hash()), 3, 1),
+    TxHash = sign_and_post_tx(Tx),
 
     %% Subscribe for an event once the Tx goes onto the chain...
     ws_subscribe(ConnPid, #{ type => tx, tx_hash => TxHash }),
@@ -4708,13 +4724,16 @@ get_tx_nonce(TxHash) ->
     {ok, 200, Tx} = get_tx(TxHash),
     maps:get(<<"nonce">>, maps:get(<<"tx">>, maps:get(<<"transaction">>, Tx))).
 
-post_spend_tx(Recipient, Amount, Fee) ->
-    post_spend_tx(Recipient, Amount, Fee, <<"foo">>).
+post_spend_tx(RecipientId, Amount, Fee) ->
+    {ok, Sender} = rpc(aec_keys, pubkey, []),
+    SenderId = aec_base58c:encode(account_pubkey, Sender),
+    post_spend_tx(SenderId, RecipientId, Amount, Fee, <<"foo">>).
 
-post_spend_tx(Recipient, Amount, Fee, Payload) ->
-    Host = internal_address(),
-    http_request(Host, post, "spend-tx",
-                 #{recipient_id => aec_base58c:encode(account_pubkey, Recipient),
+post_spend_tx(SenderId, RecipientId, Amount, Fee, Payload) ->
+    Host = external_address(),
+    http_request(Host, post, "tx/spend",
+                 #{sender_id => SenderId,
+                   recipient_id => RecipientId,
                    amount => Amount,
                    fee => Fee,
                    payload => Payload}).
@@ -4819,8 +4838,8 @@ get_contract_poi(ContractAddress) ->
 %% ============================================================
 
 swagger_validation_body(_Config) ->
-    Host = internal_address(),
-    URL = binary_to_list(iolist_to_binary([Host, "/v2/spend-tx"])),
+    Host = external_address(),
+    URL = binary_to_list(iolist_to_binary([Host, "/v2/tx/spend"])),
     Type = "application/json",
     Body = <<"{broken_json">>,
 
@@ -4856,7 +4875,7 @@ swagger_validation_required(_Config) ->
     ok.
 
 swagger_validation_schema(_Config) ->
-    Host = internal_address(),
+    Host = external_address(),
     {ok, 400, #{
             <<"reason">> := <<"validation_error">>,
             <<"parameter">> := <<"body">>,
@@ -4864,7 +4883,7 @@ swagger_validation_schema(_Config) ->
                         <<"data">> := <<"wrong_fee_data">>,
                         <<"error">> := <<"wrong_type">>,
                         <<"path">> := [<<"fee">>]
-        }}} = http_request(Host, post, "spend-tx", #{
+        }}} = http_request(Host, post, "tx/spend", #{
                    recipient_id => <<"">>,
                    amount => 0,
                    fee => <<"wrong_fee_data">>,
@@ -4877,7 +4896,7 @@ swagger_validation_schema(_Config) ->
                         <<"data">> := <<"recipient_id">>,
                         <<"error">> := <<"missing_required_property">>,
                         <<"path">> := []
-        }}} = http_request(Host, post, "spend-tx", #{
+        }}} = http_request(Host, post, "tx/spend", #{
                    amount => 0,
                    fee => <<"fee">>,
                    ttl => 100,
@@ -4889,7 +4908,7 @@ swagger_validation_schema(_Config) ->
                         <<"data">> := -1,
                         <<"error">> := <<"not_in_range">>,
                         <<"path">> := [<<"amount">>]
-        }}} = http_request(Host, post, "spend-tx", #{
+        }}} = http_request(Host, post, "tx/spend", #{
                    recipient_id => <<"">>,
                    amount => -1,
                    fee => <<"fee">>,
@@ -4981,10 +5000,6 @@ wrong_http_method_transactions(_Config) ->
 wrong_http_method_tx_id(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, post, "tx/123", []).
-
-wrong_http_method_spend_tx(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, get, "spend-tx", []).
 
 wrong_http_method_name_preclaim_tx(_Config) ->
     Host = internal_address(),
@@ -5195,7 +5210,9 @@ add_spend_txs() ->
     Txs =
         lists:map(
             fun(_) ->
-                #{recipient_id => random_hash(), amount => MinimalAmount, fee => MinFee}
+                #{recipient_id => aec_base58c:encode(account_pubkey, random_hash()),
+                  amount => MinimalAmount,
+                  fee => MinFee}
             end,
             lists:seq(0, TxsCnt -1)),
     populate_block(#{spend_txs => Txs}).
@@ -5203,8 +5220,8 @@ add_spend_txs() ->
 populate_block(Txs) ->
     lists:map(
         fun(#{recipient_id := R, amount := A, fee := F}) ->
-                {ok, 200, #{<<"tx_hash">> := TxHash}} = post_spend_tx(R, A, F),
-                TxHash
+                {ok, 200, #{<<"tx">> := SpendTx}} = post_spend_tx(R, A, F),
+                sign_and_post_tx(SpendTx)
         end,
         maps:get(spend_txs, Txs, [])).
 
@@ -5214,7 +5231,7 @@ give_tokens(RecipientPubkey, Amount) ->
     NeededBlocks = ((Amount + MinFee)  div MineReward) + 1,
     aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE),
                                    NeededBlocks),
-    SpendData = #{recipient_id => RecipientPubkey,
+    SpendData = #{recipient_id => aec_base58c:encode(account_pubkey, RecipientPubkey),
                   amount => Amount,
                   fee => MinFee},
     populate_block(#{spend_txs => [SpendData]}),

@@ -15,23 +15,6 @@
         Context :: #{}
                    ) -> {Status :: cowboy:http_status(), Headers :: list(), Body :: map()}.
 
-handle_request('PostSpendTx', #{'SpendTx' := SpendTxObj}, _Context) ->
-    #{<<"recipient_id">>     := EncodedRecipientPubkey,
-      <<"amount">>           := Amount,
-      <<"fee">>              := Fee,
-      <<"payload">>          := Payload} = SpendTxObj,
-    TTL = maps:get(<<"ttl">>, SpendTxObj, 0),
-    case aehttp_int_tx_logic:spend(EncodedRecipientPubkey, Amount, Fee, TTL, Payload) of
-        {ok, STx} ->
-            {200, [], #{<<"tx_hash">> => aec_base58c:encode(tx_hash, aetx_sign:hash(STx))}};
-        {error, invalid_key} ->
-            {404, [], #{reason => <<"Invalid key">>}};
-        {error, account_not_found} ->
-            {404, [], #{reason => <<"Account not found">>}};
-        {error, key_not_found} ->
-            {404, [], #{reason => <<"Keys not configured">>}}
-    end;
-
 handle_request('PostOracleRegisterTx', #{'OracleRegisterTx' := OracleRegisterTxObj}, _Context) ->
     #{<<"query_format">>    := QueryFormat,
       <<"response_format">> := ResponseFormat,

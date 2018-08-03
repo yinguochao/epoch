@@ -1940,35 +1940,6 @@
         }
       }
     },
-    "/spend-tx" : {
-      "post" : {
-        "tags" : [ "internal", "obsolete" ],
-        "description" : "Create spend transaction",
-        "operationId" : "PostSpendTx",
-        "consumes" : [ "application/json" ],
-        "produces" : [ "application/json" ],
-        "parameters" : [ {
-          "in" : "body",
-          "name" : "body",
-          "description" : "Creates new spend transaction",
-          "required" : true,
-          "schema" : {
-            "$ref" : "#/definitions/SpendTx"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "successful operation"
-          },
-          "404" : {
-            "description" : "Spend transaction validation error",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/oracles" : {
       "get" : {
         "tags" : [ "internal", "obsolete" ],
@@ -3080,14 +3051,6 @@
         "nonce" : 5,
         "sender_id" : null,
         "recipient_id" : { }
-      }
-    },
-    "SpendTxResponse" : {
-      "type" : "object",
-      "properties" : {
-        "tx_hash" : {
-          "$ref" : "#/definitions/EncodedHash"
-        }
       }
     },
     "OracleRegisterTx" : {

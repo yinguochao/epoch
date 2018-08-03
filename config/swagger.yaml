@@ -1630,33 +1630,6 @@ paths:
 ## Internal APIs definitions
 ###
 
-  /spend-tx:
-    post:
-      tags:
-        - internal
-        - obsolete
-      operationId: PostSpendTx
-      description: 'Create spend transaction'
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - in: body
-          name: body
-          description: Creates new spend transaction
-          required: true
-          schema:
-            $ref: '#/definitions/SpendTx'
-      responses:
-        '200':
-          description: successful operation
-          schema: '#/definitions/SpendTxResponse'
-        '404':
-          description: Spend transaction validation error
-          schema:
-            $ref: '#/definitions/Error'
-      security:
   /oracles:
     get:
       tags:
@@ -2466,11 +2439,6 @@ definitions:
     - amount
     - fee
     - payload
-  SpendTxResponse:
-    type: object
-    properties:
-      tx_hash:
-        $ref: '#/definitions/EncodedHash'
   OracleRegisterTx:
     type: object
     properties:

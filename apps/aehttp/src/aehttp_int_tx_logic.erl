@@ -11,7 +11,6 @@
         , oracle_extend/4
         , oracle_query/8
         , oracle_response/4
-        , get_oracle_questions/3
        ]).
 
 -export([ name_preclaim/3
@@ -120,18 +119,6 @@ oracle_response(DecodedQueryId, Response, Fee, TTL) ->
                 fee       => Fee,
                 ttl       => TTL})
           end).
-
-get_oracle_questions(OracleId, From, Max) ->
-    {ok, Queries} = aec_chain:get_oracle_queries(OracleId, From, open, Max),
-    FmtQueries =
-        lists:map(
-            fun(Q) -> #{<<"query_id">> => aeo_query:id(Q),
-                        query => aeo_query:query(Q),
-                        query_fee => aeo_query:fee(Q),
-                        expires_at => aeo_query:expires(Q)}
-            end,
-            Queries),
-    {ok, FmtQueries}.
 
 name_preclaim(DecodedCommitment, Fee, TTL) ->
     create_tx(

@@ -101,23 +101,6 @@ handle_request('PostOracleResponseTx', #{'OracleResponseTx' := OracleResponseTxO
             {404, [], #{reason => <<"Invalid Query Id">>}}
     end;
 
-handle_request('GetActiveRegisteredOracles', Req, _Context) ->
-    try
-        From = case maps:get(from, Req) of
-                   undefined -> '$first';
-                   X1        -> {ok, OracleId} = aec_base58c:safe_decode(oracle_pubkey, X1),
-                                OracleId
-               end,
-        Max  = case maps:get(max, Req) of
-                   undefined -> 20;
-                   X2        -> X2
-               end,
-        {ok, Oracles} = aehttp_int_tx_logic:get_oracles(From, Max),
-        {200, [], aehttp_api_parser:encode(oracle_list, Oracles)}
-    catch _:_ ->
-        {400, [], #{reason => <<"Invalid Oracle Id">>}}
-    end;
-
 handle_request('GetOracleQuestions', Req, _Context) ->
     try
         EncodedOId =  maps:get(oracle_pub_key, Req),

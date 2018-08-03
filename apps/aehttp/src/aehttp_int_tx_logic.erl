@@ -11,7 +11,6 @@
         , oracle_extend/4
         , oracle_query/8
         , oracle_response/4
-        , get_oracles/2
         , get_oracle_questions/3
        ]).
 
@@ -121,19 +120,6 @@ oracle_response(DecodedQueryId, Response, Fee, TTL) ->
                 fee       => Fee,
                 ttl       => TTL})
           end).
-
-get_oracles(From, Max) ->
-    {ok, Oracles} = aec_chain:get_oracles(From, Max),
-    FmtOracles =
-        lists:map(
-            fun(O) -> #{<<"address">> => aeo_oracles:pubkey(O),
-                        query_format => aeo_oracles:query_format(O),
-                        response_format => aeo_oracles:response_format(O),
-                        query_fee => aeo_oracles:query_fee(O),
-                        expires_at => aeo_oracles:expires(O)}
-            end,
-            Oracles),
-    {ok, FmtOracles}.
 
 get_oracle_questions(OracleId, From, Max) ->
     {ok, Queries} = aec_chain:get_oracle_queries(OracleId, From, open, Max),

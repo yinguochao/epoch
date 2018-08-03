@@ -1630,34 +1630,6 @@ paths:
 ## Internal APIs definitions
 ###
 
-  /oracles:
-    get:
-      tags:
-        - internal
-        - obsolete
-      operationId: GetActiveRegisteredOracles
-      description: 'Get active registered oracles'
-      produces:
-        - application/json
-      parameters:
-        - in: query
-          name: from
-          description: 'Last oracle in previous page'
-          required: false
-          type: string
-        - in: query
-          name: max
-          description: 'Max number of active oracles received'
-          required: false
-          type: integer
-          minimum: 1
-          maximum: 1000
-      responses:
-        '200':
-          description: Active registered oracles
-          schema:
-            $ref: '#/definitions/RegisteredOracles'
-      security:
   /oracle-questions:
     get:
       tags:
@@ -2360,10 +2332,6 @@ definitions:
       expires:
         type: integer
         format: int64
-  RegisteredOracles:
-    type: array
-    items:
-      $ref: '#/definitions/RegisteredOracle'
   OracleQuery:
     type: object
     properties:

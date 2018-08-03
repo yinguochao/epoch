@@ -143,7 +143,6 @@
     naming_system_manage_name/1,
     naming_system_broken_txs/1,
 
-    list_oracles/1,
     list_oracle_queries/1,
 
     peers/1
@@ -193,7 +192,6 @@
     wrong_http_method_balance/1,
     wrong_http_method_tx/1,
     wrong_http_method_miner_pub_key/1,
-    wrong_http_method_list_oracles/1,
     wrong_http_method_list_oracle_queries/1,
     wrong_http_method_peers/1
     ]).
@@ -474,7 +472,6 @@ groups() ->
         miner_pub_key,
 
         % requested Endpoints
-        list_oracles,
         list_oracle_queries,
 
         peers
@@ -514,7 +511,6 @@ groups() ->
         wrong_http_method_balance,
         wrong_http_method_tx,
         wrong_http_method_miner_pub_key,
-        wrong_http_method_list_oracles,
         wrong_http_method_list_oracle_queries,
         wrong_http_method_peers
      ]},
@@ -3155,50 +3151,6 @@ naming_system_broken_txs(_Config) ->
                                    ForkHeight),
     ok.
 
-list_oracles(_Config) ->
-    %% Mine a blocks to get some funds
-    aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), 1),
-
-    KeyPair = fun() ->
-                  #{ public := Pub, secret := Priv } = enacl:sign_keypair(),
-                  {Pub, Priv}
-              end,
-    KeyPairs = [ KeyPair() || _ <- lists:seq(1, 5) ],
-
-    %% Transfer some funds to these accounts
-    [ begin
-          {ok, 200, #{<<"tx">> := SpendTx}} = post_spend_tx(aec_base58c:encode(account_pubkey, Receiver), 9, 1),
-          sign_and_post_tx(SpendTx)
-      end  || {Receiver, _} <- KeyPairs ],
-
-    %% Mine a block to effect this
-    aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), 2),
-
-    %% Now register those accounts as oracles...
-    [ register_oracle(6, PubKey, PrivKey, 1, 4, {delta, 50})
-      || {PubKey, PrivKey} <- KeyPairs ],
-
-    %% Mine a block to effect the registrations
-    aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), 2),
-
-    %% Now we can test the oracle listing...
-    Oracles = get_list_oracles(5),
-    Os1 = lists:sort([aec_base58c:encode(oracle_pubkey, PubKey) ||  {PubKey, _} <- KeyPairs ]),
-    Os2 = lists:sort([ maps:get(<<"address">>, O) || O <- Oracles ]),
-
-    ct:log("Os1 = ~p\nOs2 = ~p", [Os1, Os2]),
-    Os1 = Os2,
-
-    %% Try pagination
-    Oracles1 = [_, O2] = get_list_oracles(2),
-    Oracles2 = get_list_oracles(maps:get(<<"address">>, O2), 3),
-    Os3 = lists:sort([ maps:get(<<"address">>, O) || O <- Oracles1 ++ Oracles2 ]),
-
-    ct:log("Os3 = ~p\nOs2 = ~p", [Os3, Os2]),
-    Os3 = Os2,
-
-    ok.
-
 list_oracle_queries(_Config) ->
     %% Mine a block to get some funds
     aecore_suite_utils:mine_blocks(aecore_suite_utils:node_name(?NODE), 1),
@@ -4805,16 +4757,6 @@ get_peer_pub_key() ->
     Host = external_address(),
     http_request(Host, get, "peer/key", []).
 
-get_list_oracles(Max) ->
-    get_list_oracles(undefined, Max).
-
-get_list_oracles(From, Max) ->
-    Host = internal_address(),
-    Params0 = #{ max => Max },
-    Params = case From of undefined -> Params0; _ -> Params0#{ from => From } end,
-    {ok, 200, Oracles} = http_request(Host, get, "oracles", Params),
-    Oracles.
-
 get_list_oracle_queries(Oracle, Max) ->
     get_list_oracle_queries(Oracle, undefined, Max).
 
@@ -5040,10 +4982,6 @@ wrong_http_method_tx(_Config) ->
 wrong_http_method_miner_pub_key(_Config) ->
     Host = internal_address(),
     {ok, 405, _} = http_request(Host, post, "account/pub-key", []).
-
-wrong_http_method_list_oracles(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, post, "oracles", []).
 
 wrong_http_method_list_oracle_queries(_Config) ->
     Host = internal_address(),

@@ -29,14 +29,21 @@
         , set_return_type/2
         , set_return_value/2
         , set_gas_used/2
+        , set_log/2
+        , set_log_bloom/2
         ]).
 
 -define(CONTRACT_INTERACTION_TYPE, contract_call).
--define(CONTRACT_INTERACTION_VSN, 1).
+-define(CONTRACT_INTERACTION_VSN, 2).
+-define(CONTRACT_INTERACTION_VSN_PRE_LOG, 1).
 
 %%%===================================================================
 %%% Types
 %%%===================================================================
+
+-type log_entry() ::  list(). %% [binary()       160 bit account address
+                              %%  [binary()]     topics
+                              %%  binary()       data
 
 -record(call, { caller_address   :: aec_keys:pubkey()
               , caller_nonce     :: integer()
@@ -46,6 +53,8 @@
               , gas_used         :: amount()
               , return_value     :: binary()
 	      , return_type      :: ok | error | revert
+              , log              :: [log_entry()]
+              , log_bloom        :: integer()
               }).
 
 -opaque call() :: #call{}.
@@ -76,6 +85,8 @@ new(Caller, Nonce, Address, BlockHeight, GasPrice) ->
              , gas_used         = 0     %% These are filled later
              , return_value     = <<>>  %% in aect_call_tx:process()
              , return_type      = ok
+             , log              = []
+             , log_bloom        = 0
              },
     assert_fields(C).
 
@@ -94,6 +105,7 @@ id(Caller, Nonce, Contract) ->
 
 -spec serialize(call()) -> binary().
 serialize(#call{} = I) ->
+    LogBloom = log_bloom(I),
     aec_object_serialization:serialize(
       ?CONTRACT_INTERACTION_TYPE,
       ?CONTRACT_INTERACTION_VSN,
@@ -106,23 +118,44 @@ serialize(#call{} = I) ->
       , {gas_used, gas_used(I)}
       , {return_value, return_value(I)}
       , {return_type, serialize_return_type(return_type(I))}
+      , {log, serialize_log(log(I))}
+      , {log_bloom, <<LogBloom:256>>}
      ]).
 
 -spec deserialize(binary()) -> call().
 deserialize(B) ->
-    [ {caller_address, CallerAddress}
-    , {caller_nonce, CallerNonce}
-    , {height, Height}
-    , {contract_address, ContractAddress}
-    , {gas_price, GasPrice}
-    , {gas_used, GasUsed}
-    , {return_value, ReturnValue}
-    , {return_type, ReturnType}
-    ] = aec_object_serialization:deserialize(
-          ?CONTRACT_INTERACTION_TYPE,
-          ?CONTRACT_INTERACTION_VSN,
-          serialization_template(?CONTRACT_INTERACTION_VSN),
-          B),
+    {?CONTRACT_INTERACTION_TYPE, Vsn, Fields} =
+        aec_object_serialization:deserialize_type_and_vsn(B),
+    case Vsn of
+        ?CONTRACT_INTERACTION_VSN ->
+            [ {caller_address, CallerAddress}
+            , {caller_nonce, CallerNonce}
+            , {height, Height}
+            , {contract_address, ContractAddress}
+            , {gas_price, GasPrice}
+            , {gas_used, GasUsed}
+            , {return_value, ReturnValue}
+            , {return_type, ReturnType}
+            , {log, Log}
+            , {log_bloom, <<LogBloom:256/integer>>}
+            ] = aec_serialization:decode_fields(
+                  serialization_template(?CONTRACT_INTERACTION_VSN),
+                  Fields);
+        ?CONTRACT_INTERACTION_VSN_PRE_LOG ->
+            [ {caller_address, CallerAddress}
+            , {caller_nonce, CallerNonce}
+            , {height, Height}
+            , {contract_address, ContractAddress}
+            , {gas_price, GasPrice}
+            , {gas_used, GasUsed}
+            , {return_value, ReturnValue}
+            , {return_type, ReturnType}
+            ] = aec_serialization:decode_fields(
+                  serialization_template(?CONTRACT_INTERACTION_VSN_PRE_LOG),
+                  Fields),
+            Log = [],
+            LogBloom = 0
+    end,
     #call{ caller_address   = CallerAddress
          , caller_nonce     = CallerNonce
          , height           = Height
@@ -131,9 +164,23 @@ deserialize(B) ->
          , gas_used         = GasUsed
          , return_value     = ReturnValue
          , return_type      = deserialize_return_type(ReturnType)
+         , log              = deserialize_log(Log)
+         , log_bloom        = LogBloom
          }.
 
 serialization_template(?CONTRACT_INTERACTION_VSN) ->
+    [ {caller_address, binary}
+    , {caller_nonce, int}
+    , {height, int}
+    , {contract_address, binary}
+    , {gas_price, int}
+    , {gas_used, int}
+    , {return_value, binary}
+    , {return_type, int}
+    , {log, [{binary, [binary], binary}]}
+    , {log_bloom, binary}
+    ];
+serialization_template(?CONTRACT_INTERACTION_VSN_PRE_LOG) ->
     [ {caller_address, binary}
     , {caller_nonce, int}
     , {height, int}
@@ -152,7 +199,17 @@ deserialize_return_type(0) -> ok;
 deserialize_return_type(1) -> error;
 deserialize_return_type(2) -> revert.
 
+serialize_log(Log) -> [serialize_log_entry(E) || E <- Log].
+serialize_log_entry([Address, Topics, Data]) ->
+    {Address, Topics, Data}.
+
+deserialize_log(Log) -> [deserialize_log_entry(E) || E <- Log].
+deserialize_log_entry({Address, Topics, Data}) ->
+    [Address, Topics, Data].
+
+
 serialize_for_client(#call{} = I) ->
+    LogBloom = log_bloom(I),
     #{ <<"caller_address">>   => aec_base58c:encode(account_pubkey, caller_address(I))
      , <<"caller_nonce">>     => caller_nonce(I)
      , <<"height">>           => height(I)
@@ -161,8 +218,15 @@ serialize_for_client(#call{} = I) ->
      , <<"gas_used">>         => gas_used(I)
      , <<"return_value">>     => list_to_binary(aect_utils:hex_bytes(return_value(I)))
      , <<"return_type">>      => atom_to_binary(return_type(I), utf8)
+     , <<"log">>              => [serialize_log_entry_for_client(E) || E <- log(I)]
+     , <<"log_bloom">>        => <<LogBloom:256>>
      }.
 
+serialize_log_entry_for_client([Address, Topics, Data]) ->
+    #{ <<"address">> => Address
+     , <<"topics">>  => Topics
+     , <<"data">>    => Data
+     }.
 
 %%%===================================================================
 %%% Getters
@@ -190,6 +254,12 @@ gas_price(I) -> I#call.gas_price.
 
 -spec gas_used(call()) -> amount().
 gas_used(I) -> I#call.gas_used.
+
+-spec log(call()) -> [log_entry()].
+log(I) -> I#call.log.
+
+-spec log_bloom(call()) -> integer().
+log_bloom(I) -> I#call.log_bloom.
 
 %%%===================================================================
 %%% Setters
@@ -223,6 +293,13 @@ set_return_type(revert, I) -> I#call{return_type = revert }.
 set_gas_used(X, I) ->
     I#call{gas_used = assert_field(gas_used, X)}.
 
+-spec set_log(list(), call()) -> call().
+set_log(Log, I) ->
+    I#call{log = assert_field(log, Log)}.
+
+-spec set_log_bloom(integer(), call()) -> call().
+set_log_bloom(LogBloom, I) ->
+    I#call{log_bloom = assert_field(log_bloom, LogBloom)}.
 
 %%%===================================================================
 %%% Internal functions
@@ -236,6 +313,8 @@ assert_fields(I) ->
            , {return_value,     I#call.return_value}
            , {gas_price,        I#call.gas_price}
            , {gas_used,         I#call.gas_used}
+           , {log,              I#call.log}
+           , {log_bloom,        I#call.log_bloom}
            ],
     List1 = [try assert_field(X, Y), [] catch _:X -> X end
              || {X, Y} <- List],
@@ -251,4 +330,7 @@ assert_field(contract_address, <<_:?PUB_SIZE/binary>> = X) -> X;
 assert_field(return_value,     X) when is_binary(X) -> X;
 assert_field(gas_price,        X) when is_integer(X), X >= 0 -> X;
 assert_field(gas_used,         X) when is_integer(X), X >= 0 -> X;
+assert_field(log,              []) -> [];
+assert_field(log,              [[_A,_T,_D]=E|Log])-> [E|assert_field(log, Log)];
+assert_field(log_bloom,        X) when is_integer(X) -> X;
 assert_field(Field,            X) -> error({illegal, Field, X}).

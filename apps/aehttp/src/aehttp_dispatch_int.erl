@@ -101,24 +101,6 @@ handle_request('PostOracleResponseTx', #{'OracleResponseTx' := OracleResponseTxO
             {404, [], #{reason => <<"Invalid Query Id">>}}
     end;
 
-handle_request('PostNamePreclaimTx', #{'NamePreclaimTx' := NamePreclaimTxObj}, _Context) ->
-    #{<<"commitment_id">> := CommitmentId,
-      <<"fee">>           := Fee} = NamePreclaimTxObj,
-    TTL = maps:get(<<"ttl">>, NamePreclaimTxObj, 0),
-     case aec_base58c:safe_decode({id_hash, [commitment]}, CommitmentId) of
-        {ok, DecodedCommitment} ->
-            case aehttp_int_tx_logic:name_preclaim(DecodedCommitment, Fee, TTL) of
-                {ok, _Tx} ->
-                    {200, [], #{commitment_id => CommitmentId}};
-                {error, account_not_found} ->
-                    {404, [], #{reason => <<"Account not found">>}};
-                {error, key_not_found} ->
-                    {404, [], #{reason => <<"Keys not configured">>}}
-            end;
-        {error, _Reason} ->
-            {400, [], #{reason => <<"Invalid commitment hash">>}}
-    end;
-
 handle_request('PostNameClaimTx', #{'NameClaimTx' := NameClaimTxObj}, _Context) ->
     #{<<"name">>      := Name,
       <<"name_salt">> := NameSalt,

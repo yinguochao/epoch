@@ -13,8 +13,7 @@
         , oracle_response/4
        ]).
 
--export([ name_preclaim/3
-        , name_claim/4
+-export([ name_claim/4
         , name_update/6
         , name_transfer/4
         , name_revoke/3
@@ -118,17 +117,6 @@ oracle_response(DecodedQueryId, Response, Fee, TTL) ->
                 response  => Response,
                 fee       => Fee,
                 ttl       => TTL})
-          end).
-
-name_preclaim(DecodedCommitment, Fee, TTL) ->
-    create_tx(
-        fun(Pubkey, Nonce) ->
-            aens_preclaim_tx:new(
-              #{account_id    => aec_id:create(account, Pubkey),
-                nonce         => Nonce,
-                commitment_id => DecodedCommitment,
-                fee           => Fee,
-                ttl           => TTL})
           end).
 
 name_claim(Name, NameSalt, Fee, TTL) ->

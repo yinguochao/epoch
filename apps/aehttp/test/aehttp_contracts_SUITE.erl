@@ -980,7 +980,7 @@ call_encoded(NodeName, Pubkey, Privkey, EncodedContractPubkey, EncodedData,
 contract_create_tx(Pubkey, Privkey, HexCode, EncodedInitData, CallerSet) ->
     Address = aec_base58c:encode(account_pubkey, Pubkey),
     %% Generate a nonce.
-    {ok,200,#{<<"nonce">> := Nonce0}} = get_nonce(Address),
+    {ok,200,#{<<"nonce">> := Nonce0}} = get_account(Address),
     Nonce = Nonce0 + 1,
 
     %% The default init contract.
@@ -1005,7 +1005,7 @@ contract_create_tx(Pubkey, Privkey, HexCode, EncodedInitData, CallerSet) ->
 contract_call_tx(Pubkey, Privkey, EncodedContractPubkey, EncodedCallData, CallerSet) ->
     Address = aec_base58c:encode(account_pubkey, Pubkey),
     %% Generate a nonce.
-    {ok,200,#{<<"nonce">> := Nonce0}} = get_nonce(Address),
+    {ok,200,#{<<"nonce">> := Nonce0}} = get_account(Address),
     Nonce = Nonce0 + 1,
 
     %% The default call contract.
@@ -1072,13 +1072,6 @@ post_spend_tx(Recipient, Amount, Fee, Payload) ->
 get_account(Id) ->
     Host = external_address(),
     http_request(Host, get, "accounts/" ++ http_uri:encode(Id), []).
-
-get_nonce(EncodedPubKey) ->
-    get_nonce(EncodedPubKey, []).
-
-get_nonce(EncodedPubKey, Params) ->
-    Host = external_address(),
-    http_request(Host, get, "account/" ++ binary_to_list(EncodedPubKey) ++ "/nonce", Params).
 
 post_tx(TxSerialized) ->
     Host = external_address(),
@@ -1199,7 +1192,7 @@ spend_tokens(SenderPub, SenderPriv, Recip, Amount, Fee) ->
 spend_tokens(SenderPub, SenderPriv, Recip, Amount, Fee, CallerSet) ->
     %% Generate a nonce.
     Address = aec_base58c:encode(account_pubkey, SenderPub),
-    {ok,200,#{<<"nonce">> := Nonce0}} = get_nonce(Address),
+    {ok,200,#{<<"nonce">> := Nonce0}} = get_account(Address),
     Nonce = Nonce0 + 1,
 
     Params0 = #{sender_id => aec_id:create(account, SenderPub),

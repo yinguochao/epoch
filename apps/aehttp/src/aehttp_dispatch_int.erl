@@ -101,23 +101,6 @@ handle_request('PostOracleResponseTx', #{'OracleResponseTx' := OracleResponseTxO
             {404, [], #{reason => <<"Invalid Query Id">>}}
     end;
 
-handle_request('PostNameClaimTx', #{'NameClaimTx' := NameClaimTxObj}, _Context) ->
-    #{<<"name">>      := Name,
-      <<"name_salt">> := NameSalt,
-      <<"fee">>       := Fee} = NameClaimTxObj,
-    TTL = maps:get(<<"ttl">>, NameClaimTxObj, 0),
-    case aehttp_int_tx_logic:name_claim(Name, NameSalt, Fee, TTL) of
-        {ok, _Tx, NameHash} ->
-            {200, [], #{name_id => aec_base58c:encode(name, NameHash)}};
-        {error, account_not_found} ->
-            {404, [], #{reason => <<"Account not found">>}};
-        {error, key_not_found} ->
-            {400, [], #{reason => <<"Keys not configured">>}};
-          {error, Reason} ->
-              ReasonBin = atom_to_binary(Reason, utf8),
-              {400, [], #{reason => <<"Name validation failed with a reason: ", ReasonBin/binary>>}}
-    end;
-
 handle_request('PostNameUpdateTx', #{'NameUpdateTx' := NameUpdateTxObj}, _Context) ->
     #{<<"name_id">>     := NameId,
       <<"name_ttl">>    := NameTTL,

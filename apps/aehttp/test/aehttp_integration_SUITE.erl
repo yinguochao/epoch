@@ -180,7 +180,6 @@
     wrong_http_method_name_revoke/1,
     wrong_http_method_transactions/1,
     wrong_http_method_tx_id/1,
-    wrong_http_method_name_claim_tx/1,
     wrong_http_method_name_update_tx/1,
     wrong_http_method_name_transfer_tx/1,
     wrong_http_method_name_revoke_tx/1,
@@ -495,7 +494,6 @@ groups() ->
         wrong_http_method_name_revoke,
         wrong_http_method_transactions,
         wrong_http_method_tx_id,
-        wrong_http_method_name_claim_tx,
         wrong_http_method_name_update_tx,
         wrong_http_method_name_transfer_tx,
         wrong_http_method_name_revoke_tx,
@@ -3019,12 +3017,14 @@ naming_system_manage_name(_Config) ->
     ?assertEqual(Balance1, Balance - Fee + (Height1 - Height0) * MineReward + Fee),
 
     %% Submit name claim tx and check it is in mempool
-    {ok, 200, #{<<"tx">> := EncodedUnsignedClaimTx}} =
-        get_name_claim(#{name => aec_base58c:encode(name, Name), name_salt => NameSalt,
-                         fee => Fee, account_id => PubKeyEnc}),
-    ClaimTxHash = sign_and_post_tx(EncodedUnsignedClaimTx),
+    ClaimData = #{account_id => PubKeyEnc,
+                  name       => aec_base58c:encode(name, Name),
+                  name_salt  => NameSalt,
+                  fee        => Fee},
+    {ok, 200, #{<<"tx">> := ClaimTxEnc}} = get_name_claim(ClaimData),
+    ClaimTxHash = sign_and_post_tx(ClaimTxEnc),
 
-    %% Mine enough blocks and check mempool empty again
+    %% Mine a block and check mempool empty again
     {ok, BS2} = aecore_suite_utils:mine_blocks_until_tx_on_chain(Node, ClaimTxHash, 10),
     Height2 = Height1 + length(BS2),
     {ok, []} = rpc(aec_tx_pool, peek, [infinity]),
@@ -3132,8 +3132,11 @@ naming_system_broken_txs(_Config) ->
         get_name_preclaim(#{commitment_id => aec_base58c:encode(commitment, CHash),
                             fee => Fee,
                             account_id => aec_base58c:encode(account_pubkey, random_hash())}),
-    {ok, 404, #{<<"reason">> := <<"Account not found">>}} =
-        post_name_claim_tx(Name, NameSalt, Fee),
+    {ok, 404, #{<<"reason">> := <<"Account of account_id not found">>}} =
+        get_name_claim(#{name => aec_base58c:encode(name, Name),
+                         name_salt => NameSalt,
+                         account_id => aec_base58c:encode(account_pubkey, random_hash()),
+                         fee => Fee}),
     {ok, 404, #{<<"reason">> := <<"Account not found">>}} =
         post_name_update_tx(NHash, 5, [], 5, Fee),
     {ok, 404, #{<<"reason">> := <<"Account not found">>}} =
@@ -4590,13 +4593,6 @@ post_spend_tx(SenderId, RecipientId, Amount, Fee, Payload) ->
                    fee => Fee,
                    payload => Payload}).
 
-post_name_claim_tx(Name, NameSalt, Fee) ->
-    Host = internal_address(),
-    http_request(Host, post, "name-claim-tx",
-                 #{name      => Name,
-                   name_salt => NameSalt,
-                   fee       => Fee}).
-
 post_name_update_tx(NameHash, NameTTL, Pointers, ClientTTL, Fee) ->
     Host = internal_address(),
     http_request(Host, post, "name-update-tx",
@@ -4826,10 +4822,6 @@ wrong_http_method_transactions(_Config) ->
 wrong_http_method_tx_id(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, post, "tx/123", []).
-
-wrong_http_method_name_claim_tx(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, get, "name-claim-tx", []).
 
 wrong_http_method_name_update_tx(_Config) ->
     Host = internal_address(),

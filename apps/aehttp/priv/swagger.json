@@ -2068,44 +2068,6 @@
         }
       }
     },
-    "/name-claim-tx" : {
-      "post" : {
-        "tags" : [ "internal", "obsolete" ],
-        "description" : "Create name claim transaction",
-        "operationId" : "PostNameClaimTx",
-        "consumes" : [ "application/json" ],
-        "produces" : [ "application/json" ],
-        "parameters" : [ {
-          "in" : "body",
-          "name" : "body",
-          "description" : "Creates new name claim transaction",
-          "required" : true,
-          "schema" : {
-            "$ref" : "#/definitions/NameClaimTx"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "successful operation",
-            "schema" : {
-              "$ref" : "#/definitions/NameHash"
-            }
-          },
-          "400" : {
-            "description" : "Name claim transaction validation error",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          },
-          "404" : {
-            "description" : "Account not found error",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/name-update-tx" : {
       "post" : {
         "tags" : [ "internal", "obsolete" ],

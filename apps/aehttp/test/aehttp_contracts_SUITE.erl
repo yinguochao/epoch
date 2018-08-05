@@ -883,7 +883,7 @@ dutch_auction_contract(Config) ->
 
 get_balance(Pubkey) ->
     Addr = aec_base58c:encode(account_pubkey, Pubkey),
-    {ok,200,#{<<"balance">> := Balance}} = get_balance_at_top(Addr),
+    {ok,200,#{<<"balance">> := Balance}} = get_account(Addr),
     Balance.
 
 ensure_balance(Pubkey, NewBalance) ->
@@ -1069,13 +1069,9 @@ post_spend_tx(Recipient, Amount, Fee, Payload) ->
                    fee => Fee,
                    payload => Payload}).
 
-get_balance_at_top(EncodedPubKey) ->
-    get_balance(EncodedPubKey, []).
-
-get_balance(EncodedPubKey, Params) ->
+get_account(Id) ->
     Host = external_address(),
-    http_request(Host, get, "account/" ++ binary_to_list(EncodedPubKey) ++ "/balance",
-                 Params).
+    http_request(Host, get, "accounts/" ++ http_uri:encode(Id), []).
 
 get_nonce(EncodedPubKey) ->
     get_nonce(EncodedPubKey, []).

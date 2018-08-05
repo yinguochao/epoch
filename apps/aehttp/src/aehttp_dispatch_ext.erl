@@ -753,24 +753,6 @@ handle_request('GetContractPoI', Req, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('GetAccountBalance', Req, _Context) ->
-    ParseFuns = [read_required_params([address]),
-                 base58_decode([{address, address, [account_pubkey,
-                                                    contract_pubkey]}]),
-                 get_block_hash_optionally_by_hash_or_height(block_hash),
-                 fun(_, #{address := Pubkey, block_hash := AtHash}) ->
-                      case aehttp_logic:get_account_balance_at_hash(Pubkey, AtHash) of
-                          {error, account_not_found} ->
-                              {error, {404, [], #{reason => <<"Account not found">>}}};
-                          {error, not_on_main_chain} ->
-                              {error, {400, [], #{reason => <<"Block not on the main chain">>}}};
-                          {ok, Balance} ->
-                              {ok, {200, [], #{balance => Balance}}}
-                      end
-                end
-                ],
-    process_request(ParseFuns, Req);
-
 handle_request('GetAccountPendingTransactions', Req, _Context) ->
     case aec_base58c:safe_decode(account_pubkey, maps:get('account_pubkey', Req)) of
         {ok, AccountPubkey} ->

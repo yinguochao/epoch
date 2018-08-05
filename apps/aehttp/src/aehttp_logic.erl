@@ -20,7 +20,6 @@
 
 -export([ get_account/1
         , get_account_balance/1
-        , get_account_balance_at_hash/2
         ]).
 
 -export([ version/0
@@ -153,13 +152,6 @@ get_account_balance(Pubkey) when is_binary(Pubkey) ->
             {ok, aec_accounts:balance(A)};
         none ->
             {error, account_not_found}
-    end.
-
-get_account_balance_at_hash(AccountPubkey, Hash) ->
-    case aec_chain:get_account_at_hash(AccountPubkey, Hash) of
-        {error, no_state_trees} -> {error, not_on_main_chain};
-        none                    -> {error, account_not_found};
-        {value, Account}        -> {ok, aec_accounts:balance(Account)}
     end.
 
 version() -> {ok, aeu_info:get_version()}.

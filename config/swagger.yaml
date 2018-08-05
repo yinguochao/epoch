@@ -1742,23 +1742,23 @@ paths:
           schema:
             $ref: '#/definitions/Error'
       security:
-  /account/pub-key:
+  /debug/accounts/node:
     get:
       tags:
         - internal
         - node_operator
-      operationId: GetPubKey
-      description: 'Get user''s public key address'
+      operationId: GetNodePubkey
+      description: 'Get node''s public key'
       produces:
         - application/json
       parameters:
       responses:
         '200':
-          description: successful operation
+          description: 'Successful operation'
           schema:
             $ref: '#/definitions/PubKey'
         '404':
-          description: No key pair
+          description: 'Public key not found'
           schema:
             $ref: '#/definitions/Error'
       security:

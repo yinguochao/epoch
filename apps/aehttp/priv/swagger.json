@@ -2068,44 +2068,6 @@
         }
       }
     },
-    "/name-revoke-tx" : {
-      "post" : {
-        "tags" : [ "internal", "obsolete" ],
-        "description" : "Create name revoke transaction",
-        "operationId" : "PostNameRevokeTx",
-        "consumes" : [ "application/json" ],
-        "produces" : [ "application/json" ],
-        "parameters" : [ {
-          "in" : "body",
-          "name" : "body",
-          "description" : "Creates new name revoke transaction",
-          "required" : true,
-          "schema" : {
-            "$ref" : "#/definitions/NameRevokeTx"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "successful operation",
-            "schema" : {
-              "$ref" : "#/definitions/NameHash"
-            }
-          },
-          "400" : {
-            "description" : "Name revoke transaction validation error",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          },
-          "404" : {
-            "description" : "Account not found error",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/account/pub-key" : {
       "get" : {
         "tags" : [ "internal", "node_operator" ],
@@ -3268,9 +3230,6 @@
         "name_id" : {
           "$ref" : "#/definitions/EncodedHash"
         }
-      },
-      "example" : {
-        "name_id" : { }
       }
     },
     "NamePointer" : {

@@ -101,24 +101,6 @@ handle_request('PostOracleResponseTx', #{'OracleResponseTx' := OracleResponseTxO
             {404, [], #{reason => <<"Invalid Query Id">>}}
     end;
 
-handle_request('PostNameRevokeTx', #{'NameRevokeTx' := NameRevokeTxObj}, _Context) ->
-    #{<<"name_id">> := NameId,
-      <<"fee">>     := Fee} = NameRevokeTxObj,
-    TTL = maps:get(<<"ttl">>, NameRevokeTxObj, 0),
-    case aec_base58c:safe_decode({id_hash, [name]}, NameId) of
-        {ok, DecodedName} ->
-            case aehttp_int_tx_logic:name_revoke(DecodedName, Fee, TTL) of
-                {ok, _Tx} ->
-                    {200, [], #{name_id => NameId}};
-                {error, account_not_found} ->
-                    {404, [], #{reason => <<"Account not found">>}};
-                {error, key_not_found} ->
-                    {400, [], #{reason => <<"Keys not configured">>}}
-            end;
-        {error, _Reason} ->
-            {400, [], #{reason => <<"Invalid name hash">>}}
-    end;
-
 handle_request('GetPubKey', _, _Context) ->
     case aehttp_logic:miner_key() of
         {ok, Pubkey} ->

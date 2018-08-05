@@ -13,9 +13,6 @@
         , oracle_response/4
        ]).
 
--export([name_revoke/3
-       ]).
-
 sender_and_hash(STx) ->
     Tx     = aetx_sign:tx(STx),
     Sender = aetx:origin(Tx),
@@ -114,18 +111,6 @@ oracle_response(DecodedQueryId, Response, Fee, TTL) ->
                 response  => Response,
                 fee       => Fee,
                 ttl       => TTL})
-          end).
-
-name_revoke(DecodedNameHash, Fee, TTL) ->
-    create_tx(
-        fun(Pubkey, Nonce) ->
-            %% Note that this is the local node's pubkey.
-            aens_revoke_tx:new(
-              #{account_id => aec_id:create(account, Pubkey),
-                nonce      => Nonce,
-                name_id    => DecodedNameHash,
-                fee        => Fee,
-                ttl        => TTL})
           end).
 
 %% Internals

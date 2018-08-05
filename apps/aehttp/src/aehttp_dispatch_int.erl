@@ -101,32 +101,6 @@ handle_request('PostOracleResponseTx', #{'OracleResponseTx' := OracleResponseTxO
             {404, [], #{reason => <<"Invalid Query Id">>}}
     end;
 
-handle_request('PostNameUpdateTx', #{'NameUpdateTx' := NameUpdateTxObj}, _Context) ->
-    #{<<"name_id">>     := NameId,
-      <<"name_ttl">>    := NameTTL,
-      <<"pointers">>    := Pointers,
-      <<"client_ttl">>  := ClientTTL,
-      <<"fee">>         := Fee} = NameUpdateTxObj,
-    TTL = maps:get(<<"ttl">>, NameUpdateTxObj, 0),
-    case aec_base58c:safe_decode({id_hash, [name]}, NameId) of
-        {ok, DecodedNameHash} ->
-            case aehttp_helpers:decode_pointers(Pointers) of
-                {ok, Pointers1} ->
-                    case aehttp_int_tx_logic:name_update(DecodedNameHash, NameTTL, Pointers1, ClientTTL, Fee, TTL) of
-                        {ok, _Tx} ->
-                            {200, [], #{name_id => NameId}};
-                        {error, account_not_found} ->
-                            {404, [], #{reason => <<"Account not found">>}};
-                        {error, key_not_found} ->
-                            {400, [], #{reason => <<"Keys not configured">>}}
-                    end;
-                {error, _Reason} ->
-                    {400, [], #{reason => <<"Invalid pointers">>}}
-            end;
-        {error, _Reason} ->
-            {400, [], #{reason => <<"Invalid name hash">>}}
-    end;
-
 handle_request('PostNameTransferTx', #{'NameTransferTx' := NameTransferTxObj}, _Context) ->
     #{<<"name_id">>          := NameId,
       <<"recipient_id">>     := RecipientId,

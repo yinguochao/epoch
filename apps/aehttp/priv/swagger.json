@@ -2068,44 +2068,6 @@
         }
       }
     },
-    "/name-update-tx" : {
-      "post" : {
-        "tags" : [ "internal", "obsolete" ],
-        "description" : "Create name update transaction",
-        "operationId" : "PostNameUpdateTx",
-        "consumes" : [ "application/json" ],
-        "produces" : [ "application/json" ],
-        "parameters" : [ {
-          "in" : "body",
-          "name" : "body",
-          "description" : "Creates new name update transaction",
-          "required" : true,
-          "schema" : {
-            "$ref" : "#/definitions/NameUpdateTx"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "successful operation",
-            "schema" : {
-              "$ref" : "#/definitions/NameHash"
-            }
-          },
-          "400" : {
-            "description" : "Name update transaction validation error",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          },
-          "404" : {
-            "description" : "Account not found error",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/name-transfer-tx" : {
       "post" : {
         "tags" : [ "internal", "obsolete" ],

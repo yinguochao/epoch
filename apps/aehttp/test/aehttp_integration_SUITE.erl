@@ -175,12 +175,10 @@
     wrong_http_method_oracle_response/1,
     wrong_http_method_name_preclaim/1,
     wrong_http_method_name_claim/1,
-    wrong_http_method_name_update/1,
     wrong_http_method_name_transfer/1,
     wrong_http_method_name_revoke/1,
     wrong_http_method_transactions/1,
     wrong_http_method_tx_id/1,
-    wrong_http_method_name_update_tx/1,
     wrong_http_method_name_transfer_tx/1,
     wrong_http_method_name_revoke_tx/1,
     wrong_http_method_commitment_hash/1,
@@ -489,12 +487,10 @@ groups() ->
         wrong_http_method_oracle_response,
         wrong_http_method_name_preclaim,
         wrong_http_method_name_claim,
-        wrong_http_method_name_update,
         wrong_http_method_name_transfer,
         wrong_http_method_name_revoke,
         wrong_http_method_transactions,
         wrong_http_method_tx_id,
-        wrong_http_method_name_update_tx,
         wrong_http_method_name_transfer_tx,
         wrong_http_method_name_revoke_tx,
         wrong_http_method_commitment_hash,
@@ -3043,10 +3039,14 @@ naming_system_manage_name(_Config) ->
                 <<"pointers">> := []}} = get_name(Name),
 
     %% Submit name updated tx and check it is in mempool
-    {ok, 200, #{<<"tx">> := EncodedUnsignedUpdateTx}} =
-        get_name_update(#{name_id => EncodedNHash, name_ttl => NameTTL, client_ttl => TTL,
-                          pointers => Pointers, fee => Fee, account_id => PubKeyEnc}),
-    UpdateTxHash = sign_and_post_tx(EncodedUnsignedUpdateTx),
+    NameUpdateData = #{account_id => PubKeyEnc,
+                       name_id    => aec_base58c:encode(name, NHash),
+                       client_ttl => TTL,
+                       pointers   => Pointers,
+                       name_ttl   => NameTTL,
+                       fee        => Fee},
+    {ok, 200, #{<<"tx">> := UpdateEnc}} = get_name_update(NameUpdateData),
+    UpdateTxHash = sign_and_post_tx(UpdateEnc),
 
     %% Mine a block and check mempool empty again
     {ok, BS3} = aecore_suite_utils:mine_blocks_until_tx_on_chain(Node, UpdateTxHash, 10),
@@ -3137,8 +3137,13 @@ naming_system_broken_txs(_Config) ->
                          name_salt => NameSalt,
                          account_id => aec_base58c:encode(account_pubkey, random_hash()),
                          fee => Fee}),
-    {ok, 404, #{<<"reason">> := <<"Account not found">>}} =
-        post_name_update_tx(NHash, 5, [], 5, Fee),
+    {ok, 404, #{<<"reason">> := <<"Account of account_id not found">>}} =
+        get_name_update(#{account_id => aec_base58c:encode(account_pubkey, random_hash()),
+                          name_id => aec_base58c:encode(name, NHash),
+                          name_ttl => 5,
+                          pointers => [],
+                          client_ttl => 5,
+                          fee => Fee}),
     {ok, 404, #{<<"reason">> := <<"Account not found">>}} =
         post_name_transfer_tx(NHash, random_hash(), Fee),
     {ok, 404, #{<<"reason">> := <<"Account not found">>}} =
@@ -4593,15 +4598,6 @@ post_spend_tx(SenderId, RecipientId, Amount, Fee, Payload) ->
                    fee => Fee,
                    payload => Payload}).
 
-post_name_update_tx(NameHash, NameTTL, Pointers, ClientTTL, Fee) ->
-    Host = internal_address(),
-    http_request(Host, post, "name-update-tx",
-                 #{name_id    => aec_base58c:encode(name, NameHash),
-                   client_ttl => ClientTTL,
-                   pointers   => Pointers,
-                   name_ttl   => NameTTL,
-                   fee        => Fee}).
-
 post_name_transfer_tx(NameHash, RecipientPubKey, Fee) ->
     Host = internal_address(),
     http_request(Host, post, "name-transfer-tx",
@@ -4803,10 +4799,6 @@ wrong_http_method_name_claim(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, get, "tx/name/claim", []).
 
-wrong_http_method_name_update(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, get, "tx/name/update", []).
-
 wrong_http_method_name_transfer(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, get, "tx/name/transfer", []).
@@ -4822,10 +4814,6 @@ wrong_http_method_transactions(_Config) ->
 wrong_http_method_tx_id(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, post, "tx/123", []).
-
-wrong_http_method_name_update_tx(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, get, "name-update-tx", []).
 
 wrong_http_method_name_transfer_tx(_Config) ->
     Host = internal_address(),

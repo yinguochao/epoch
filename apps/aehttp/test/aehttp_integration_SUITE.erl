@@ -179,7 +179,6 @@
     wrong_http_method_name_revoke/1,
     wrong_http_method_transactions/1,
     wrong_http_method_tx_id/1,
-    wrong_http_method_name_transfer_tx/1,
     wrong_http_method_name_revoke_tx/1,
     wrong_http_method_commitment_hash/1,
     wrong_http_method_name/1,
@@ -491,7 +490,6 @@ groups() ->
         wrong_http_method_name_revoke,
         wrong_http_method_transactions,
         wrong_http_method_tx_id,
-        wrong_http_method_name_transfer_tx,
         wrong_http_method_name_revoke_tx,
         wrong_http_method_commitment_hash,
         wrong_http_method_name,
@@ -3078,10 +3076,12 @@ naming_system_manage_name(_Config) ->
     ?assertEqual(Balance4, Balance3 + (Height4 - Height3) * MineReward),
 
     %% Submit name transfer tx and check it is in mempool
-    {ok, 200, #{<<"tx">> := EncodedUnsignedTransferTx}} =
-        get_name_transfer(#{name_id => EncodedNHash, recipient_id => PubKeyEnc,
-                            fee => Fee, account_id => PubKeyEnc}),
-    TransferTxHash = sign_and_post_tx(EncodedUnsignedTransferTx),
+    TransferData = #{account_id   => PubKeyEnc,
+                     recipient_id => PubKeyEnc,
+                     name_id      => aec_base58c:encode(name, NHash),
+                     fee          => Fee},
+    {ok, 200, #{<<"tx">> := TransferEnc}} = get_name_transfer(TransferData),
+    TransferTxHash = sign_and_post_tx(TransferEnc),
 
     %% Mine a block and check mempool empty again
     {ok, BS5} = aecore_suite_utils:mine_blocks_until_tx_on_chain(Node, TransferTxHash, 10),
@@ -3144,8 +3144,11 @@ naming_system_broken_txs(_Config) ->
                           pointers => [],
                           client_ttl => 5,
                           fee => Fee}),
-    {ok, 404, #{<<"reason">> := <<"Account not found">>}} =
-        post_name_transfer_tx(NHash, random_hash(), Fee),
+    {ok, 404, #{<<"reason">> := <<"Account of account_id not found">>}} =
+        get_name_transfer(#{account_id => aec_base58c:encode(account_pubkey, random_hash()),
+                            recipient_id => aec_base58c:encode(account_pubkey, random_hash()),
+                            name_id => aec_base58c:encode(name, NHash),
+                            fee => Fee}),
     {ok, 404, #{<<"reason">> := <<"Account not found">>}} =
         post_name_revoke_tx(NHash, Fee),
 
@@ -4598,13 +4601,6 @@ post_spend_tx(SenderId, RecipientId, Amount, Fee, Payload) ->
                    fee => Fee,
                    payload => Payload}).
 
-post_name_transfer_tx(NameHash, RecipientPubKey, Fee) ->
-    Host = internal_address(),
-    http_request(Host, post, "name-transfer-tx",
-                 #{name_id      => aec_base58c:encode(name, NameHash),
-                   recipient_id => aec_base58c:encode(account_pubkey, RecipientPubKey),
-                   fee          => Fee}).
-
 post_name_revoke_tx(NameHash, Fee) ->
     Host = internal_address(),
     http_request(Host, post, "name-revoke-tx",
@@ -4814,10 +4810,6 @@ wrong_http_method_transactions(_Config) ->
 wrong_http_method_tx_id(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, post, "tx/123", []).
-
-wrong_http_method_name_transfer_tx(_Config) ->
-    Host = internal_address(),
-    {ok, 405, _} = http_request(Host, get, "name-transfer-tx", []).
 
 wrong_http_method_name_revoke_tx(_Config) ->
     Host = internal_address(),

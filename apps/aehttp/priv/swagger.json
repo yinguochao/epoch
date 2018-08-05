@@ -2068,44 +2068,6 @@
         }
       }
     },
-    "/name-transfer-tx" : {
-      "post" : {
-        "tags" : [ "internal", "obsolete" ],
-        "description" : "Create name transfer transaction",
-        "operationId" : "PostNameTransferTx",
-        "consumes" : [ "application/json" ],
-        "produces" : [ "application/json" ],
-        "parameters" : [ {
-          "in" : "body",
-          "name" : "body",
-          "description" : "Creates new name transfer transaction",
-          "required" : true,
-          "schema" : {
-            "$ref" : "#/definitions/NameTransferTx"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "successful operation",
-            "schema" : {
-              "$ref" : "#/definitions/NameHash"
-            }
-          },
-          "400" : {
-            "description" : "Name transfer transaction validation error",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          },
-          "404" : {
-            "description" : "Account not found error",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/name-revoke-tx" : {
       "post" : {
         "tags" : [ "internal", "obsolete" ],

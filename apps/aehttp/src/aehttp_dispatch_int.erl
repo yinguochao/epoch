@@ -101,30 +101,6 @@ handle_request('PostOracleResponseTx', #{'OracleResponseTx' := OracleResponseTxO
             {404, [], #{reason => <<"Invalid Query Id">>}}
     end;
 
-handle_request('PostNameTransferTx', #{'NameTransferTx' := NameTransferTxObj}, _Context) ->
-    #{<<"name_id">>          := NameId,
-      <<"recipient_id">>     := RecipientId,
-      <<"fee">>              := Fee} = NameTransferTxObj,
-    TTL = maps:get(<<"ttl">>, NameTransferTxObj, 0),
-    case {aec_base58c:safe_decode({id_hash, [name]}, NameId),
-          aec_base58c:safe_decode({id_hash, [account_pubkey]}, RecipientId)} of
-        {{ok, DecodedName}, {ok, DecodedRecipient}} ->
-            case aehttp_int_tx_logic:name_transfer(DecodedName,
-                                                   DecodedRecipient,
-                                                   Fee, TTL) of
-                {ok, _Tx} ->
-                    {200, [], #{name_id => NameId}};
-                {error, account_not_found} ->
-                    {404, [], #{reason => <<"Account not found">>}};
-                {error, key_not_found} ->
-                    {400, [], #{reason => <<"Keys not configured">>}}
-            end;
-        {{error, _Reason}, _} ->
-            {400, [], #{reason => <<"Invalid name hash">>}};
-        {_, {error, _Reason}} ->
-            {400, [], #{reason => <<"Invalid recipient pubkey">>}}
-    end;
-
 handle_request('PostNameRevokeTx', #{'NameRevokeTx' := NameRevokeTxObj}, _Context) ->
     #{<<"name_id">> := NameId,
       <<"fee">>     := Fee} = NameRevokeTxObj,

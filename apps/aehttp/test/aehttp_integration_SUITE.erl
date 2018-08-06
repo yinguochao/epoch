@@ -173,7 +173,7 @@
     wrong_http_method_name_claim/1,
     wrong_http_method_name_transfer/1,
     wrong_http_method_name_revoke/1,
-    wrong_http_method_transactions/1,
+    wrong_http_method_pending_transactions/1,
     wrong_http_method_tx_id/1,
     wrong_http_method_commitment_hash/1,
     wrong_http_method_name/1,
@@ -478,7 +478,7 @@ groups() ->
         wrong_http_method_name_claim,
         wrong_http_method_name_transfer,
         wrong_http_method_name_revoke,
-        wrong_http_method_transactions,
+        wrong_http_method_pending_transactions,
         wrong_http_method_tx_id,
         wrong_http_method_commitment_hash,
         wrong_http_method_name,
@@ -2804,7 +2804,7 @@ get_transaction(_Config) ->
 %% GET externalAPI/account/balance
 pending_transactions(_Config) ->
     {ok, []} = rpc(aec_tx_pool, peek, [infinity]), % empty
-    {ok, 200, []} = get_transactions(),
+    {ok, 200, #{<<"transactions">> := []}} = get_pending_transactions(),
     InitialBalance =
         case get_balance_at_top() of
             {ok, 404, #{<<"reason">> := <<"Account not found">>}} -> 0;
@@ -2823,7 +2823,7 @@ pending_transactions(_Config) ->
     true = (is_integer(Bal0) andalso Bal0 > AmountToSpent + Fee),
 
     {ok, []} = rpc(aec_tx_pool, peek, [infinity]), % still empty
-    {ok, 200, []} = get_transactions(),
+    {ok, 200, #{<<"transactions">> := []}} = get_pending_transactions(),
 
     %{ok, SenderPubKey} = rpc:call(?NODE, aec_keys, pubkey, [], 5000),
     ReceiverPubKey = random_hash(),
@@ -2835,11 +2835,8 @@ pending_transactions(_Config) ->
     sign_and_post_tx(SpendTx),
     {ok, NodeTxs} = rpc(aec_tx_pool, peek, [infinity]),
     true = length(NodeTxs) =:= 1, % not empty anymore
-    {ok, 200, ReturnedTxs} = get_transactions(),
-    ExpectedTxs = [#{<<"tx">> => aec_base58c:encode(
-                                   transaction,
-                                   aetx_sign:serialize_to_binary(T))}
-           || T <- NodeTxs],
+    {ok, 200, #{<<"transactions">> := ReturnedTxs}} = get_pending_transactions(),
+    ExpectedTxs = [aetx_sign:serialize_for_client_pending(T) || T <- NodeTxs],
     true = length(ExpectedTxs) =:= length(ReturnedTxs),
     true = lists:all(fun(Tx) -> lists:member(Tx, ExpectedTxs) end, ReturnedTxs),
 
@@ -2850,7 +2847,7 @@ pending_transactions(_Config) ->
 
     aecore_suite_utils:mine_key_blocks(aecore_suite_utils:node_name(?NODE), 3),
     {ok, []} = rpc(aec_tx_pool, peek, [infinity]), % empty again
-    {ok, 200, []} = get_transactions(),
+    {ok, 200, #{<<"transactions">> := []}} = get_pending_transactions(),
 
     {ok, 200, #{<<"balance">> := Bal1}} = get_balance_at_top(),
     ct:log("Bal1: ~p, Bal0: ~p, Mine reward: ~p, Fee: ~p, Amount to spend: ~p",
@@ -3789,7 +3786,7 @@ sc_ws_close_mutual(Config, Closer) when Closer =:= initiator
     assert_balance(RPubkey, RStartB + RChange),
 
     % ensure tx is not hanging in mempool
-    {ok, 200, []} = get_transactions(),
+    {ok, 200, #{<<"transactions">> := []}} = get_pending_transactions(),
     ok.
 
 sc_ws_leave(Config) ->
@@ -4490,9 +4487,9 @@ get_channel_settle(Data) ->
     Host = external_address(),
     http_request(Host, post, "tx/channel/settle", Data).
 
-get_transactions() ->
-    Host = external_address(),
-    http_request(Host, get, "transactions", []).
+get_pending_transactions() ->
+    Host = internal_address(),
+    http_request(Host, get, "debug/transactions/pending", []).
 
 get_tx(TxHash) ->
     Host = external_address(),
@@ -4701,9 +4698,9 @@ wrong_http_method_name_revoke(_Config) ->
     Host = external_address(),
     {ok, 405, _} = http_request(Host, get, "tx/name/revoke", []).
 
-wrong_http_method_transactions(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, post, "transactions", []).
+wrong_http_method_pending_transactions(_Config) ->
+    Host = internal_address(),
+    {ok, 405, _} = http_request(Host, post, "debug/transactions/pending", []).
 
 wrong_http_method_tx_id(_Config) ->
     Host = external_address(),

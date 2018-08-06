@@ -396,12 +396,6 @@ handle_request('GetStatus', _Params, _Context) ->
        <<"peer-count">>                 => PeerCount,
        <<"pending-transactions-count">> => PendingTxsCount}};
 
-handle_request('GetTxs', _Req, _Context) ->
-    {ok, Txs0} = aec_tx_pool:peek(infinity),
-    lager:debug("GetTxs : ~p", [pp(Txs0)]),
-    Txs = [aehttp_api_parser:encode(tx, T) || T <- Txs0],
-    {200, [], Txs};
-
 handle_request('PostBlock', Req, _Context) ->
     case aehttp_api_parser:decode(block, maps:get('Block', Req)) of
         {error, Reason} ->

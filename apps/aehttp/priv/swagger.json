@@ -1853,18 +1853,18 @@
         }
       }
     },
-    "/transactions" : {
+    "/debug/transactions/pending" : {
       "get" : {
-        "tags" : [ "external", "transactions" ],
-        "description" : "Get transactions in the mempool",
-        "operationId" : "GetTxs",
+        "tags" : [ "internal", "transactions" ],
+        "description" : "Get pending transactions",
+        "operationId" : "GetPendingTransactions",
         "produces" : [ "application/json" ],
         "parameters" : [ ],
         "responses" : {
           "200" : {
             "description" : "Successful operation",
             "schema" : {
-              "$ref" : "#/definitions/Transactions"
+              "$ref" : "#/definitions/GenericTxs"
             }
           }
         }
@@ -2415,12 +2415,6 @@
       },
       "example" : {
         "tx" : "tx"
-      }
-    },
-    "Transactions" : {
-      "type" : "array",
-      "items" : {
-        "$ref" : "#/definitions/Tx"
       }
     },
     "RegisteredOracle" : {

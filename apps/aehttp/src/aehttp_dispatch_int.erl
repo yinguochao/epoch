@@ -122,6 +122,10 @@ handle_request('GetCommitmentId', Req, _Context) ->
             {400, [], #{reason => <<"Name validation failed with a reason: ", ReasonBin/binary>>}}
     end;
 
+handle_request('GetPendingTransactions', _Req, _Context) ->
+    {ok, Txs} = aec_tx_pool:peek(infinity),
+    {200, [], #{transactions => [aetx_sign:serialize_for_client_pending(T) || T <- Txs]}};
+
 handle_request('GetPeers', _Req, _Context) ->
     case aeu_env:user_config_or_env([<<"http">>, <<"debug">>],
                                     aehttp, enable_debug_endpoints, false) of

@@ -2789,7 +2789,7 @@ get_transaction(_Config) ->
     TxHash = aec_base58c:encode(tx_hash, aetx_sign:hash(SignedSpendTx)),
 
     SerializedSpendTx = aetx_sign:serialize_to_binary(SignedSpendTx),
-    {ok, 200, _} = post_tx(aec_base58c:encode(transaction, SerializedSpendTx)),
+    {ok, 200, _} = post_transactions_sut(aec_base58c:encode(transaction, SerializedSpendTx)),
     {ok, 200, #{<<"transaction">> := PendingTx}} = get_tx(TxHash),
     Expected = aetx_sign:serialize_for_client_pending(SignedSpendTx),
     Expected = PendingTx,
@@ -2874,7 +2874,7 @@ post_correct_tx(_Config) ->
     {ok, SignedTx} = rpc(aec_keys, sign_tx, [SpendTx]),
     ExpectedHash = aec_base58c:encode(tx_hash, aetx_sign:hash(SignedTx)),
     {ok, 200, #{<<"tx_hash">> := ExpectedHash}} =
-        post_tx(aec_base58c:encode(transaction, aetx_sign:serialize_to_binary(SignedTx))),
+        post_transactions_sut(aec_base58c:encode(transaction, aetx_sign:serialize_to_binary(SignedTx))),
     {ok, [SignedTx]} = rpc(aec_tx_pool, peek, [infinity]), % same tx
     ok.
 
@@ -2898,8 +2898,8 @@ post_broken_tx(_Config) ->
                   end,
     EncodedBrokenTx = aec_base58c:encode(transaction, BrokenTxBin),
     EncodedSignedTx = aec_base58c:encode(transaction, SignedTxBin),
-    {ok, 400, #{<<"reason">> := <<"Invalid base58Check encoding">>}} = post_tx(EncodedBrokenTx),
-    {ok, 200, _} = post_tx(EncodedSignedTx),
+    {ok, 400, #{<<"reason">> := <<"Invalid base58Check encoding">>}} = post_transactions_sut(EncodedBrokenTx),
+    {ok, 200, _} = post_transactions_sut(EncodedSignedTx),
     ok.
 
 post_broken_base58_tx(_Config) ->
@@ -2921,7 +2921,7 @@ post_broken_base58_tx(_Config) ->
             <<_, BrokenHash/binary>> =
                 aec_base58c:encode(transaction,
                                    aetx_sign:serialize_to_binary(SignedTx)),
-            {ok, 400, #{<<"reason">> := <<"Invalid base58Check encoding">>}} = post_tx(BrokenHash)
+            {ok, 400, #{<<"reason">> := <<"Invalid base58Check encoding">>}} = post_transactions_sut(BrokenHash)
         end,
         lists:seq(1, NumberOfChecks)), % number
     ok.
@@ -4521,10 +4521,6 @@ get_balance_at_top() ->
     {ok, 200, #{<<"pub_key">> := EncodedPubKey}} = get_node_pubkey(),
     get_accounts_by_pubkey_sut(EncodedPubKey).
 
-post_tx(TxSerialized) ->
-    Host = external_address(),
-    http_request(Host, post, "tx", #{tx => TxSerialized}).
-
 get_node_pubkey() ->
     Host = internal_address(),
     http_request(Host, get, "debug/accounts/node", []).
@@ -4716,7 +4712,7 @@ wrong_http_method_name(_Config) ->
 
 wrong_http_method_tx(_Config) ->
     Host = external_address(),
-    {ok, 405, _} = http_request(Host, get, "tx", []).
+    {ok, 405, _} = http_request(Host, get, "transactions", []).
 
 wrong_http_method_node_pubkey(_Config) ->
     Host = internal_address(),
@@ -4933,7 +4929,7 @@ sign_and_post_tx(EncodedUnsignedTx) ->
     SerializedTx = aetx_sign:serialize_to_binary(SignedTx),
     %% Check that we get the correct hash
     TxHash = aec_base58c:encode(tx_hash, aetx_sign:hash(SignedTx)),
-    {ok, 200, #{<<"tx_hash">> := TxHash}} = post_tx(aec_base58c:encode(transaction, SerializedTx)),
+    {ok, 200, #{<<"tx_hash">> := TxHash}} = post_transactions_sut(aec_base58c:encode(transaction, SerializedTx)),
     %% Check tx is in mempool.
     Fun = fun() ->
                   tx_in_mempool(TxHash)

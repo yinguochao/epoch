@@ -956,38 +956,6 @@
         }
       }
     },
-    "/tx" : {
-      "post" : {
-        "tags" : [ "external", "gossip" ],
-        "description" : "Post a new transaction",
-        "operationId" : "PostTx",
-        "consumes" : [ "application/json" ],
-        "produces" : [ "application/json" ],
-        "parameters" : [ {
-          "in" : "body",
-          "name" : "body",
-          "description" : "A new transaction",
-          "required" : true,
-          "schema" : {
-            "$ref" : "#/definitions/Tx"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "Successful operation",
-            "schema" : {
-              "$ref" : "#/definitions/PostTxResponse"
-            }
-          },
-          "400" : {
-            "description" : "Invalid transaction",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/tx/{tx_hash}" : {
       "get" : {
         "tags" : [ "external", "transactions" ],

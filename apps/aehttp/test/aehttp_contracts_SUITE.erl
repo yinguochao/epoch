@@ -1075,7 +1075,7 @@ get_account(Id) ->
 
 post_tx(TxSerialized) ->
     Host = external_address(),
-    http_request(Host, post, "tx", #{tx => TxSerialized}).
+    http_request(Host, post, "transactions", #{tx => TxSerialized}).
 
 sign_tx(Tx) ->
     {ok, TxDec} = aec_base58c:safe_decode(transaction, Tx),

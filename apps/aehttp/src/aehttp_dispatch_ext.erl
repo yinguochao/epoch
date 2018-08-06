@@ -414,21 +414,6 @@ handle_request('PostBlock', Req, _Context) ->
             end
     end;
 
-handle_request('PostTx', #{'Tx' := Tx} = Req, _Context) ->
-    lager:debug("Got PostTx; Req = ~p", [pp(Req)]),
-    case aehttp_api_parser:decode(tx, maps:get(<<"tx">>, Tx)) of
-        {error, #{<<"tx">> := broken_tx}} ->
-            {400, [], #{reason => <<"Invalid tx">>}};
-        {error, _} ->
-            {400, [], #{reason => <<"Invalid base58Check encoding">>}};
-        {ok, SignedTx} ->
-            lager:debug("deserialized: ~p", [pp(SignedTx)]),
-            PushRes = aec_tx_pool:push(SignedTx),
-            lager:debug("PushRes = ~p", [pp(PushRes)]),
-            Hash = aetx_sign:hash(SignedTx),
-            {200, [], #{<<"tx_hash">> => aec_base58c:encode(tx_hash, Hash)}}
-    end;
-
 handle_request('PostContractCreate', #{'ContractCreateData' := Req}, _Context) ->
     ParseFuns = [parse_map_to_atom_keys(),
                  read_required_params([owner_id, code, vm_version, deposit,

@@ -1596,35 +1596,6 @@ paths:
           schema:
             $ref: '#/definitions/Error'
       security:
-  /name:
-    get:
-      tags:
-        - external
-        - name_service
-      operationId: GetName
-      description: 'Get name entry from Naming System'
-      produces:
-        - application/json
-      parameters:
-        - in: query
-          name: name
-          description: 'Name to get entry from Naming System'
-          required: true
-          type : string
-      responses:
-        '200':
-          description: Name data
-          schema:
-            $ref: '#/definitions/NameEntry'
-        '400':
-          description: Name validation failed
-          schema:
-            $ref: '#/definitions/Error'
-        '404':
-          description: Name not found
-          schema:
-            $ref: '#/definitions/Error'
-      security:
 
 ###
 ## Internal APIs definitions

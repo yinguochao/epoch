@@ -332,6 +332,7 @@ handle_request('GetOracleQueryByPubkeyAndQueryId', Params, _Context) ->
 
 handle_request('GetNameEntryByName', Params, _Context) ->
     Name = maps:get(name, Params),
+    epoch_mining:info(">>>> ~p", [Name]),
     case aec_chain:name_entry(Name) of
         {ok, #{id       := Id,
                expires  := Expires,
@@ -764,24 +765,6 @@ handle_request('GetContractCallFromTx', Req, _Context) ->
                     end)
                 ],
     process_request(ParseFuns, Req);
-
-handle_request('GetName', Req, _Context) ->
-    Name = maps:get('name', Req),
-    case aec_chain:name_entry(Name) of
-        {ok, #{id       := Id,
-               expires  := Expires,
-               pointers := Pointers}} ->
-            {200, [], #{<<"id">>       => aec_base58c:encode(id_hash, Id),
-                        <<"expires">>  => Expires,
-                        <<"pointers">> => [aens_pointer:serialize_for_client(P) || P <- Pointers]}};
-        {error, name_not_found} ->
-            {404, [], #{reason => <<"Name not found">>}};
-        {error, name_revoked} ->
-            {404, [], #{reason => <<"Name revoked">>}};
-        {error, Reason} ->
-            ReasonBin = atom_to_binary(Reason, utf8),
-            {400, [], #{reason => <<"Name validation failed with a reason: ", ReasonBin/binary>>}}
-    end;
 
 handle_request('CompileContract', Req, _Context) ->
     case Req of

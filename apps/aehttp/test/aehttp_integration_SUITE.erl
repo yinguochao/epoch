@@ -2402,7 +2402,7 @@ nameservice_transaction_claim(MinerAddress, MinerPubkey) ->
     Name = <<"name.test">>,
     Salt = 1234,
 
-    {ok, 200, #{<<"commitment_id">> := EncodedCHash}} = get_commitment_hash(Name, Salt),
+    {ok, 200, #{<<"commitment_id">> := EncodedCHash}} = get_commitment_id(Name, Salt),
     {ok, CHash} = aec_base58c:safe_decode(commitment, EncodedCHash),
 
     %% Submit name preclaim tx and check it is in mempool
@@ -2980,8 +2980,8 @@ naming_system_manage_name(_Config) ->
     {ok, []} = rpc(aec_tx_pool, peek, [infinity]),
 
     %% Get commitment hash to preclaim a name
-    {ok, 200, #{<<"commitment_id">> := EncodedCHash}} = get_commitment_hash(Name, NameSalt),
-    {ok, _} = aec_base58c:safe_decode(commitment, EncodedCHash),
+    {ok, 200, #{<<"commitment_id">> := EncodedCHash}} = get_commitment_id(Name, NameSalt),
+    {ok, CHash} = aec_base58c:safe_decode(commitment, EncodedCHash),
 
     %% Submit name preclaim tx and check it is in mempool
     PreclaimData = #{commitment_id => EncodedCHash,
@@ -3118,7 +3118,7 @@ naming_system_broken_txs(_Config) ->
     %% Try to submit txs with empty account
 
     {ok, 400, #{<<"reason">> := <<"Name validation failed with a reason: registrar_unknown">>}} =
-        get_commitment_hash(<<"abcd.badregistrar">>, 123),
+        get_commitment_id(<<"abcd.badregistrar">>, 123),
     {ok, 400, #{<<"reason">> := <<"Name validation failed with a reason: registrar_unknown">>}} =
         get_name(<<"abcd.badregistrar">>),
     {ok, 404, #{<<"reason">> := <<"Account of account_id not found">>}} =
@@ -4515,9 +4515,9 @@ post_spend_tx(SenderId, RecipientId, Amount, Fee, Payload) ->
                    fee => Fee,
                    payload => Payload}).
 
-get_commitment_hash(Name, Salt) ->
-    Host = external_address(),
-    http_request(Host, get, "commitment-hash", [{name, Name}, {salt, Salt}]).
+get_commitment_id(Name, Salt) ->
+    Host = internal_address(),
+    http_request(Host, get, "debug/names/commitment-id", [{name, Name}, {salt, Salt}]).
 
 get_name(Name) ->
     Host = external_address(),
@@ -4712,8 +4712,8 @@ wrong_http_method_tx_id(_Config) ->
     {ok, 405, _} = http_request(Host, post, "tx/123", []).
 
 wrong_http_method_commitment_hash(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, post, "commitment-hash", []).
+    Host = internal_address(),
+    {ok, 405, _} = http_request(Host, post, "debug/names/commitment-id", []).
 
 wrong_http_method_name(_Config) ->
     Host = external_address(),

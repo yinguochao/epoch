@@ -1870,34 +1870,34 @@
         }
       }
     },
-    "/commitment-hash" : {
+    "/debug/names/commitment-id" : {
       "get" : {
-        "tags" : [ "external", "dev" ],
-        "description" : "Compute commitment hash for a given salt and name. Commitment hash must be computed client side. This endpoint is for verifying client's implementations.",
-        "operationId" : "GetCommitmentHash",
+        "tags" : [ "internal", "dev" ],
+        "description" : "Compute commitment ID for a given salt and name",
+        "operationId" : "GetCommitmentId",
         "produces" : [ "application/json" ],
         "parameters" : [ {
           "name" : "name",
           "in" : "query",
-          "description" : "Name to put into the hash",
+          "description" : "Name",
           "required" : true,
           "type" : "string"
         }, {
           "name" : "salt",
           "in" : "query",
-          "description" : "Salt to put into the hash",
+          "description" : "Salt",
           "required" : true,
           "type" : "integer"
         } ],
         "responses" : {
           "200" : {
-            "description" : "Calculated commitment hash",
+            "description" : "Successful operation",
             "schema" : {
-              "$ref" : "#/definitions/CommitmentHash"
+              "$ref" : "#/definitions/CommitmentId"
             }
           },
           "400" : {
-            "description" : "Name validation failed",
+            "description" : "Invalid name",
             "schema" : {
               "$ref" : "#/definitions/Error"
             }
@@ -3071,7 +3071,7 @@
         "nonce" : 1
       }
     },
-    "CommitmentHash" : {
+    "CommitmentId" : {
       "type" : "object",
       "properties" : {
         "commitment_id" : {

@@ -110,6 +110,18 @@ handle_request('GetNodePubkey', _, _Context) ->
             {404, [], #{reason => <<"Public key not found">>}}
     end;
 
+handle_request('GetCommitmentId', Req, _Context) ->
+    Name         = maps:get('name', Req),
+    Salt         = maps:get('salt', Req),
+    case aens:get_commitment_hash(Name, Salt) of
+        {ok, CHash} ->
+            EncodedCHash = aec_base58c:encode(commitment, CHash),
+            {200, [], #{commitment_id => EncodedCHash}};
+        {error, Reason} ->
+            ReasonBin = atom_to_binary(Reason, utf8),
+            {400, [], #{reason => <<"Name validation failed with a reason: ", ReasonBin/binary>>}}
+    end;
+
 handle_request('GetTxsListFromBlockRangeByHeight', Req, _Context) ->
     HeightFrom = maps:get('from', Req),
     HeightTo = maps:get('to', Req),

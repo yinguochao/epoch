@@ -1566,33 +1566,33 @@ paths:
           description: 'Successful operation'
           schema:
             $ref: '#/definitions/Transactions'
-  /commitment-hash:
+  /debug/names/commitment-id:
     get:
       tags:
-        - external
+        - internal
         - dev
-      operationId: GetCommitmentHash
-      description: 'Compute commitment hash for a given salt and name. Commitment hash must be computed client side. This endpoint is for verifying client''s implementations.'
+      operationId: GetCommitmentId
+      description: 'Compute commitment ID for a given salt and name'
       produces:
         - application/json
       parameters:
         - in: query
           name: name
-          description: 'Name to put into the hash'
+          description: 'Name'
           required: true
           type: string
         - in: query
           name: salt
-          description: 'Salt to put into the hash'
+          description: 'Salt'
           required: true
           type: integer
       responses:
         '200':
-          description: Calculated commitment hash
+          description: 'Successful operation'
           schema:
-            $ref: '#/definitions/CommitmentHash'
+            $ref: '#/definitions/CommitmentId'
         '400':
-          description: Name validation failed
+          description: 'Invalid name'
           schema:
             $ref: '#/definitions/Error'
       security:
@@ -2353,7 +2353,7 @@ definitions:
     required:
     - name_id
     - fee
-  CommitmentHash:
+  CommitmentId:
     type: object
     properties:
       commitment_id:

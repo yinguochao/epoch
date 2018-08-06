@@ -97,7 +97,7 @@ test_peer_discovery(Cfg) ->
         ping_interval => 5000,
         max_inbound => 4
     },
-    StartupTimeout = proplists:get_value(node_startup_time, Cfg),
+    StartupTimeout = proplists:get_value(startup_timeout, Cfg),
     setup([?NODE1, ?NODE2, ?NODE3, ?NODE4, ?NODE5], NodeConfig, Cfg),
     start_node(node1, Cfg),
     start_node(node2, Cfg),
@@ -122,6 +122,7 @@ test_peer_discovery(Cfg) ->
 test_inbound_limitation(Cfg) ->
     Length = 50,
     StartupTimeout = proplists:get_value(node_startup_time, Cfg),
+
     NodeConfig = #{
         ping_interval => 5000,
         max_inbound => 2

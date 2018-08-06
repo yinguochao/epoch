@@ -830,35 +830,6 @@ paths:
             $ref: '#/definitions/Status'
       security:
 
-  /tx/{tx_hash}:
-    get:
-      tags:
-        - external
-        - transactions
-      operationId: GetTx
-      description: 'Get a transaction by hash'
-      produces:
-        - application/json
-      parameters:
-        - in: path
-          name: tx_hash
-          description: Hash of the transaction to get
-          required: true
-          type: string
-      responses:
-        '200':
-          description: The transaction found
-          schema:
-            $ref: '#/definitions/SingleTx'
-        '400':
-          description: Invalid transaction
-          schema:
-            $ref: '#/definitions/Error'
-        '404':
-          description: Transaction not found
-          schema:
-            $ref: '#/definitions/Error'
-      security:
   /tx/{tx_hash}/contract-call:
     get:
       tags:
@@ -2680,13 +2651,6 @@ definitions:
         type: integer
         format: int64
         minimum: 0
-  SingleTx:
-    type: object
-    properties:
-      transaction:
-        $ref: '#/definitions/GenericSignedTx'
-    required:
-      - transaction
   GenericSignedTx:
     type: object
     properties:

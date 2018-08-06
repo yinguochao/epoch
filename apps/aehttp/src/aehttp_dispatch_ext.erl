@@ -807,18 +807,6 @@ handle_request('DecodeData', Req, _Context) ->
             end
     end;
 
-handle_request('GetTx', Req, _Context) ->
-    ParseFuns = [read_required_params([tx_hash]),
-                 base58_decode([{tx_hash, tx_hash, tx_hash}]),
-                 get_transaction(tx_hash, tx),
-                 encode_transaction(tx, encoded_tx),
-                 ok_response(
-                    fun(#{encoded_tx := #{tx := Tx}}) ->
-                        #{transaction => Tx}
-                    end)
-                ],
-    process_request(ParseFuns, Req);
-
 handle_request('GetPeerKey', _Req, _Context) ->
     case aehttp_logic:peer_pubkey() of
         {ok, PeerKey} ->

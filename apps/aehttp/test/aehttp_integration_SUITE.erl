@@ -2769,8 +2769,8 @@ get_transaction(_Config) ->
     aecore_suite_utils:mine_key_blocks(aecore_suite_utils:node_name(?NODE), 2),
     lists:foreach(
         fun(TxHash) ->
-                {ok, 200, #{<<"transaction">> := #{<<"hash">> := TxHash1}}} =
-                    get_tx(TxHash),
+                {ok, 200, #{<<"hash">> := TxHash1}} =
+                    get_transactions_by_hash_sut(TxHash),
                 ?assertEqual(TxHash, TxHash1)
         end,
       TxHashes),
@@ -2790,7 +2790,7 @@ get_transaction(_Config) ->
 
     SerializedSpendTx = aetx_sign:serialize_to_binary(SignedSpendTx),
     {ok, 200, _} = post_transactions_sut(aec_base58c:encode(transaction, SerializedSpendTx)),
-    {ok, 200, #{<<"transaction">> := PendingTx}} = get_tx(TxHash),
+    {ok, 200, PendingTx} = get_transactions_by_hash_sut(TxHash),
     Expected = aetx_sign:serialize_for_client_pending(SignedSpendTx),
     Expected = PendingTx,
 
@@ -4491,13 +4491,9 @@ get_pending_transactions() ->
     Host = internal_address(),
     http_request(Host, get, "debug/transactions/pending", []).
 
-get_tx(TxHash) ->
-    Host = external_address(),
-    http_request(Host, get, "tx/" ++ binary_to_list(TxHash), []).
-
 get_tx_nonce(TxHash) ->
-    {ok, 200, Tx} = get_tx(TxHash),
-    maps:get(<<"nonce">>, maps:get(<<"tx">>, maps:get(<<"transaction">>, Tx))).
+    {ok, 200, Tx} = get_transactions_by_hash_sut(TxHash),
+    maps:get(<<"nonce">>, maps:get(<<"tx">>, Tx)).
 
 post_spend_tx(RecipientId, Amount, Fee) ->
     {ok, Sender} = rpc(aec_keys, pubkey, []),
@@ -4700,7 +4696,7 @@ wrong_http_method_pending_transactions(_Config) ->
 
 wrong_http_method_tx_id(_Config) ->
     Host = external_address(),
-    {ok, 405, _} = http_request(Host, post, "tx/123", []).
+    {ok, 405, _} = http_request(Host, post, "transactions/123", []).
 
 wrong_http_method_commitment_hash(_Config) ->
     Host = internal_address(),
@@ -4938,23 +4934,20 @@ sign_and_post_tx(EncodedUnsignedTx) ->
     TxHash.
 
 tx_in_mempool(TxHash) ->
-    case get_tx(TxHash) of
-        {ok, 200, #{<<"transaction">> :=
-                        #{<<"block_hash">> := <<"none">>}}} -> true;
-        {ok, 200, #{<<"transaction">> :=
-                        #{<<"block_hash">> := Other}}} ->
+    case get_transactions_by_hash_sut(TxHash) of
+        {ok, 200, #{<<"block_hash">> := <<"none">>}} -> true;
+        {ok, 200, #{<<"block_hash">> := Other}} ->
             ct:log("Tx not in mempool, but in chain: ~p", [Other]),
             false;
         {ok, 404, _} -> false
     end.
 
 tx_in_chain(TxHash) ->
-    case get_tx(TxHash) of
-        {ok, 200, #{<<"transaction">> :=
-                        #{<<"block_hash">> := <<"none">>}}} ->
+    case get_transactions_by_hash_sut(TxHash) of
+        {ok, 200, #{<<"block_hash">> := <<"none">>}} ->
             ct:log("Tx not mined, but in mempool"),
             false;
-        {ok, 200, #{<<"transaction">> := #{<<"block_hash">> := _}}} -> true;
+        {ok, 200, #{<<"block_hash">> := _}} -> true;
         {ok, 404, _} -> false
     end.
 

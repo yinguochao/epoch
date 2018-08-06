@@ -956,41 +956,6 @@
         }
       }
     },
-    "/tx/{tx_hash}" : {
-      "get" : {
-        "tags" : [ "external", "transactions" ],
-        "description" : "Get a transaction by hash",
-        "operationId" : "GetTx",
-        "produces" : [ "application/json" ],
-        "parameters" : [ {
-          "name" : "tx_hash",
-          "in" : "path",
-          "description" : "Hash of the transaction to get",
-          "required" : true,
-          "type" : "string"
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "The transaction found",
-            "schema" : {
-              "$ref" : "#/definitions/SingleTx"
-            }
-          },
-          "400" : {
-            "description" : "Invalid transaction",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          },
-          "404" : {
-            "description" : "Transaction not found",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/tx/{tx_hash}/contract-call" : {
       "get" : {
         "tags" : [ "external", "transactions" ],
@@ -3579,27 +3544,6 @@
       "example" : {
         "protocol_version" : 1,
         "effective_at_height" : 0
-      }
-    },
-    "SingleTx" : {
-      "type" : "object",
-      "required" : [ "transaction" ],
-      "properties" : {
-        "transaction" : {
-          "$ref" : "#/definitions/GenericSignedTx"
-        }
-      },
-      "example" : {
-        "transaction" : {
-          "tx" : {
-            "vsn" : 0,
-            "type" : "type"
-          },
-          "block_hash" : { },
-          "block_height" : 6,
-          "hash" : null,
-          "signatures" : [ "signatures", "signatures" ]
-        }
       }
     },
     "GenericSignedTx" : {

@@ -1054,7 +1054,7 @@ get_contract_decode_data(Request) ->
 
 get_tx(TxHash) ->
     Host = external_address(),
-    http_request(Host, get, "tx/" ++ binary_to_list(TxHash), []).
+    http_request(Host, get, "transactions/" ++ binary_to_list(TxHash), []).
 
 post_spend_tx(Recipient, Amount, Fee) ->
     post_spend_tx(Recipient, Amount, Fee, <<"post spend tx">>).
@@ -1236,10 +1236,10 @@ sign_and_post_tx(PrivKey, EncodedUnsignedTx) ->
 
 tx_in_chain(TxHash) ->
     case get_tx(TxHash) of
-        {ok, 200, #{<<"transaction">> := #{<<"block_hash">> := <<"none">>}}} ->
+        {ok, 200, #{<<"block_hash">> := <<"none">>}} ->
             ct:log("Tx not mined, but in mempool"),
             false;
-        {ok, 200, #{<<"transaction">> := #{<<"block_hash">> := _}}} -> true;
+        {ok, 200, #{<<"block_hash">> := _}} -> true;
         {ok, 404, _} -> false
     end.
 

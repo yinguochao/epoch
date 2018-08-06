@@ -1459,7 +1459,7 @@ get_transactions_info_by_hash_sut(Hash) ->
 
 post_transactions_sut(Tx) ->
     Host = external_address(),
-    http_request(Host, post, "ng-transactions", #{tx => Tx}).
+    http_request(Host, post, "transactions", #{tx => Tx}).
 
 %% /contracts/*
 

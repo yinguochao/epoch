@@ -589,7 +589,7 @@
         }
       }
     },
-    "/ng-transactions" : {
+    "/transactions" : {
       "post" : {
         "tags" : [ "external", "transactions" ],
         "description" : "Post a new transaction",

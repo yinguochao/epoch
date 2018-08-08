@@ -381,43 +381,47 @@ init(ok) ->
         blocked = gb_trees:empty()
     }}.
 
-handle_call({is_blocked, PeerId}, _From, State0) ->
+handle_call(Msg, From, State) ->
+    epoch_sync:debug("PEERS handle_call ~p", [Msg]),
+    handle_call1(Msg, From, State).
+
+handle_call1({is_blocked, PeerId}, _From, State0) ->
     State = maybe_unblock(State0),
     {reply, is_blocked(PeerId, State), update_peer_metrics(State)};
-handle_call({block_peer, PeerInfo}, _From, State0) ->
+handle_call1({block_peer, PeerInfo}, _From, State0) ->
     State = block_peer(PeerInfo, maybe_unblock(State0)),
     {reply, ok, update_peer_metrics(schedule_connect(State))};
-handle_call({unblock_peer, PeerId}, _From, State0) ->
+handle_call1({unblock_peer, PeerId}, _From, State0) ->
     State = unblock_peer(PeerId, maybe_unblock(State0)),
     {reply, ok, update_peer_metrics(schedule_connect(State))};
-handle_call(unblock_all, _From, State) -> % Only used in tests
+handle_call1(unblock_all, _From, State) -> % Only used in tests
     {reply, ok, update_peer_metrics(schedule_connect(unblock_all(State)))};
-handle_call({count, Tag}, _From, State) ->
+handle_call1({count, Tag}, _From, State) ->
     {reply, count(Tag, State), State};
-handle_call({connected_peers, Tag}, _From, State) ->
+handle_call1({connected_peers, Tag}, _From, State) ->
     {reply, connected_peers(Tag, State), State};
-handle_call({available_peers, Tag}, _From, State) ->
+handle_call1({available_peers, Tag}, _From, State) ->
     {reply, available_peers(Tag, State), State};
-handle_call(blocked_peers, _From, State) ->
+handle_call1(blocked_peers, _From, State) ->
      #state{ blocked = Blocked } = State,
     Result = [ PeerInfo || PeerInfo <- gb_trees:values(Blocked) ],
     {reply, Result, State};
-handle_call({get_connection, PeerId}, _From, State) ->
+handle_call1({get_connection, PeerId}, _From, State) ->
     {reply, conn_pid(PeerId, State), State};
-handle_call({get_random, N, Exclude}, _From, State0) ->
+handle_call1({get_random, N, Exclude}, _From, State0) ->
     {Subset, State} = pool_random_subset(N, Exclude, State0),
     Result = [ peer_info(P) || {_, P} <- Subset ],
     {reply, Result, State};
-handle_call({connection_failed, PeerId, PeerCon}, _From, State0) ->
+handle_call1({connection_failed, PeerId, PeerCon}, _From, State0) ->
     State = on_connection_failed(PeerId, PeerCon, State0),
     {reply, ok, update_peer_metrics(schedule_connect(State))};
-handle_call({connection_closed, PeerId, PeerCon}, _From, State0) ->
+handle_call1({connection_closed, PeerId, PeerCon}, _From, State0) ->
     State = on_connection_closed(PeerId, PeerCon, State0),
     {reply, ok, update_peer_metrics(schedule_connect(State))};
-handle_call({peer_connected, PeerId, PeerCon}, _From, State0) ->
+handle_call1({peer_connected, PeerId, PeerCon}, _From, State0) ->
     {Result, State} = on_peer_connected(PeerId, PeerCon, State0),
     {reply, Result, update_peer_metrics(schedule_connect(State))};
-handle_call({peer_accepted, PeerAddr, PeerInfo, PeerCon}, _From, State0) ->
+handle_call1({peer_accepted, PeerAddr, PeerInfo, PeerCon}, _From, State0) ->
     {Result, State} = on_peer_accepted(PeerAddr, PeerInfo, PeerCon, State0),
     {reply, Result, update_peer_metrics(State)}.
 

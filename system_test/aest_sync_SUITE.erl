@@ -135,8 +135,7 @@ init_per_suite(Config) ->
     %% Some parameters depend on the speed and capacity of the docker containers:
     %% timers must be less than gen_server:call timeout.
     [ {blocks_per_second, 3},
-      {node_startup_time,  20000}, % Time may take to get the node to respond to http
-      {node_shutdown_time, 20000}  % Time it may take to stop node cleanly
+      {shutdown_timeout, 20000}  % Time it may take to stop node cleanly
       | Config ].
 
 init_per_testcase(quick_start_stop, Config) ->
@@ -157,7 +156,6 @@ end_per_suite(_Config) -> ok.
 %% A node with a newer version of the code can join and synchronize
 %% to a cluster of older nodes.
 new_node_joins_network(Cfg) ->
-    NodeStartupTime = proplists:get_value(node_startup_time, Cfg),
     Compatible = "aeternity/epoch:local", %% Latest version it should be compatible with
                                           %% Change if comptibility with previous version
                                           %% should be guaranteed
@@ -187,7 +185,7 @@ new_node_joins_network(Cfg) ->
     start_node(old_node1, Cfg),
     start_node(old_node2, Cfg),
     T0 = erlang:system_time(seconds),
-    wait_for_value({height, 0}, [old_node1, old_node2], NodeStartupTime, Cfg),
+    wait_for_startup([old_node1, old_node2], 0, Cfg),
     StartupTime = erlang:system_time(seconds) - T0,
 
     Length = max(20, 5 + proplists:get_value(blocks_per_second, Cfg) * StartupTime),
@@ -213,7 +211,7 @@ new_node_joins_network(Cfg) ->
 
     %% Starts a third node and check it synchronize with the first two
     start_node(new_node1, Cfg),
-    wait_for_value({height, 0}, [new_node1], NodeStartupTime, Cfg),
+    wait_for_startup([new_node1], 0, Cfg),
 
     %% Starting http interface takes more time than sync, but:
     %% Wait enough for node 3 to sync but not for it to build a new chain
@@ -310,10 +308,8 @@ docker_keeps_data(Cfg) ->
 %% Note that Node1 must be considerably ahead to make sure Node2 does not
 %% create a fork with higher difficulty in the time Node1 restarts.
 stop_and_continue_sync(Cfg) ->
-    BlocksPerSecond = proplists:get_value(blocks_per_second, Cfg),
-
     %% Create a chain long enough to need 10 seconds to fetch it
-    Length = BlocksPerSecond * 50,
+    Length = 150,
 
     setup_nodes([#{ name    => node1,
                     peers   => [node2],

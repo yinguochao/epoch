@@ -1431,9 +1431,9 @@
         }
       }
     },
-    "/tx/name/revoke" : {
+    "/debug/names/revoke" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a name_revoke transaction object",
         "operationId" : "PostNameRevoke",
         "produces" : [ "application/json" ],

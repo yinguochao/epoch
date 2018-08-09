@@ -4451,8 +4451,8 @@ get_name_transfer(Data) ->
     http_request(Host, post, "debug/names/transfer", Data).
 
 get_name_revoke(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/name/revoke", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/names/revoke", Data).
 
 get_channel_create(Data) ->
     Host = external_address(),
@@ -4686,8 +4686,8 @@ wrong_http_method_name_transfer(_Config) ->
     {ok, 405, _} = http_request(Host, get, "debug/names/transfer", []).
 
 wrong_http_method_name_revoke(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, get, "tx/name/revoke", []).
+    Host = internal_address(),
+    {ok, 405, _} = http_request(Host, get, "debug/names/revoke", []).
 
 wrong_http_method_pending_transactions(_Config) ->
     Host = internal_address(),

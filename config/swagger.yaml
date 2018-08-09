@@ -1210,10 +1210,10 @@ paths:
           description: Account or name not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/name/revoke:
+  /debug/names/revoke:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostNameRevoke
       description: 'Get a name_revoke transaction object'

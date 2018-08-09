@@ -116,6 +116,18 @@ handle_request('PostChannelCreate', #{'ChannelCreateTx' := Req}, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
+handle_request('PostChannelDeposit', #{'ChannelDepositTx' := Req}, _Context) ->
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([channel_id, from_id,
+                                       amount, fee, state_hash, round, nonce]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{channel_id, channel_id, {id_hash, [channel]}},
+                                {from_id, from_id, {id_hash, [account_pubkey]}},
+                                {state_hash, state_hash, state}]),
+                 unsigned_tx_response(fun aesc_deposit_tx:new/1)
+                ],
+    process_request(ParseFuns, Req);
+
 handle_request('PostOracleRegisterTx', #{'OracleRegisterTx' := OracleRegisterTxObj}, _Context) ->
     #{<<"query_format">>    := QueryFormat,
       <<"response_format">> := ResponseFormat,

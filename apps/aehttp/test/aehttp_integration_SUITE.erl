@@ -4443,8 +4443,8 @@ get_name_claim(Data) ->
     http_request(Host, post, "debug/names/claim", Data).
 
 get_name_update(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/name/update", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/names/update", Data).
 
 get_name_transfer(Data) ->
     Host = external_address(),

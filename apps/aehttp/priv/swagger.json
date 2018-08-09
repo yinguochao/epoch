@@ -1359,9 +1359,9 @@
         }
       }
     },
-    "/tx/name/update" : {
+    "/debug/names/update" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a name_update transaction object",
         "operationId" : "PostNameUpdate",
         "produces" : [ "application/json" ],

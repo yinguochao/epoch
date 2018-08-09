@@ -1287,9 +1287,9 @@
         }
       }
     },
-    "/tx/name/preclaim" : {
+    "/debug/names/preclaim" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a name_preclaim transaction object",
         "operationId" : "PostNamePreclaim",
         "produces" : [ "application/json" ],

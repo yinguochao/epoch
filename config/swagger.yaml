@@ -1098,10 +1098,10 @@ paths:
           description: Oracle or query not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/name/preclaim:
+  /debug/names/preclaim:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostNamePreclaim
       description: 'Get a name_preclaim transaction object'

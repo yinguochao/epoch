@@ -540,17 +540,6 @@ handle_request('PostOracleResponse', #{'OracleResponseTx' := Req}, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('PostNamePreclaim', #{'NamePreclaimTx' := Req}, _Context) ->
-    ParseFuns = [parse_map_to_atom_keys(),
-                 read_required_params([account_id, commitment_id, fee]),
-                 read_optional_params([{ttl, ttl, '$no_value'}]),
-                 base58_decode([{account_id, account_id, {id_hash, [account_pubkey]}},
-                                {commitment_id, commitment_id, {id_hash, [commitment]}}]),
-                 get_nonce_from_account_id(account_id),
-                 unsigned_tx_response(fun aens_preclaim_tx:new/1)
-                ],
-    process_request(ParseFuns, Req);
-
 handle_request('PostNameClaim', #{'NameClaimTx' := Req}, _Context) ->
     ParseFuns = [parse_map_to_atom_keys(),
                  read_required_params([account_id, name, name_salt, fee]),

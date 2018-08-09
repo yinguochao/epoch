@@ -1393,10 +1393,10 @@ paths:
           description: Invalid transaction
           schema:
             $ref: '#/definitions/Error'
-  /tx/channel/close/solo:
+  /debug/channels/close/solo:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostChannelCloseSolo
       description: 'Get a channel_close_solo transaction object'

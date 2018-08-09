@@ -1661,9 +1661,9 @@
         }
       }
     },
-    "/tx/channel/close/solo" : {
+    "/debug/channels/close/solo" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a channel_close_solo transaction object",
         "operationId" : "PostChannelCloseSolo",
         "produces" : [ "application/json" ],

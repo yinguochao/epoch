@@ -14,6 +14,7 @@
                         , get_nonce_from_account_id/1
                         , verify_name/1
                         , nameservice_pointers_decode/1
+                        , poi_decode/1
                         , unsigned_tx_response/1
                         , process_request/2
                         ]).
@@ -161,6 +162,20 @@ handle_request('PostChannelCloseMutual', #{'ChannelCloseMutualTx' := Req}, _Cont
                  read_optional_params([{ttl, ttl, '$no_value'}]),
                  base58_decode([{channel_id, channel_id, {id_hash, [channel]}}]),
                  unsigned_tx_response(fun aesc_close_mutual_tx:new/1)
+                ],
+    process_request(ParseFuns, Req);
+
+handle_request('PostChannelCloseSolo', #{'ChannelCloseSoloTx' := Req}, _Context) ->
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([channel_id, from_id,
+                                       payload, poi, fee]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{channel_id, channel_id, {id_hash, [channel]}},
+                                {from_id, from_id, {id_hash, [account_pubkey]}},
+                                {poi, poi, poi}]),
+                 get_nonce_from_account_id(from_id),
+                 poi_decode(poi),
+                 unsigned_tx_response(fun aesc_close_solo_tx:new/1)
                 ],
     process_request(ParseFuns, Req);
 

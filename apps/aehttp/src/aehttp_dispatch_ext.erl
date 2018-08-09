@@ -540,19 +540,6 @@ handle_request('PostOracleResponse', #{'OracleResponseTx' := Req}, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('PostChannelSettle', #{'ChannelSettleTx' := Req}, _Context) ->
-    ParseFuns = [parse_map_to_atom_keys(),
-                 read_required_params([channel_id, from_id,
-                                       initiator_amount_final,
-                                       responder_amount_final,
-                                       fee, nonce]),
-                 read_optional_params([{ttl, ttl, '$no_value'}]),
-                 base58_decode([{channel_id, channel_id, {id_hash, [channel]}},
-                                {from_id, from_id, {id_hash, [account_pubkey]}}]),
-                 unsigned_tx_response(fun aesc_settle_tx:new/1)
-                ],
-    process_request(ParseFuns, Req);
-
 handle_request('GetContractPoI', Req, _Context) ->
     ParseFuns = [read_required_params([contract]),
                  base58_decode([{contract, contract, contract_pubkey}]),

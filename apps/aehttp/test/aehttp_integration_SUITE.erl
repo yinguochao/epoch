@@ -4483,8 +4483,8 @@ get_channel_slash(Data) ->
     http_request(Host, post, "debug/channels/slash", Data).
 
 get_channel_settle(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/channel/settle", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/channels/settle", Data).
 
 get_pending_transactions() ->
     Host = internal_address(),

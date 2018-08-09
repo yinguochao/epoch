@@ -140,6 +140,18 @@ handle_request('PostChannelWithdraw', #{'ChannelWithdrawTx' := Req}, _Context) -
                 ],
     process_request(ParseFuns, Req);
 
+handle_request('PostChannelSnapshotSolo', #{'ChannelSnapshotSoloTx' := Req}, _Context) ->
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([channel_id, from_id,
+                                       payload, fee]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{channel_id, channel_id, {id_hash, [channel]}},
+                                {from_id, from_id, {id_hash, [account_pubkey]}}]),
+                 get_nonce_from_account_id(from_id),
+                 unsigned_tx_response(fun aesc_snapshot_solo_tx:new/1)
+                ],
+    process_request(ParseFuns, Req);
+
 handle_request('PostOracleRegisterTx', #{'OracleRegisterTx' := OracleRegisterTxObj}, _Context) ->
     #{<<"query_format">>    := QueryFormat,
       <<"response_format">> := ResponseFormat,

@@ -1601,9 +1601,9 @@
         }
       }
     },
-    "/tx/channel/snapshot/solo" : {
+    "/debug/channels/snapshot/solo" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a channel_snapshot_solo transaction object",
         "operationId" : "PostChannelSnapshotSolo",
         "produces" : [ "application/json" ],

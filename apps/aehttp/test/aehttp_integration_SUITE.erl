@@ -4463,8 +4463,8 @@ get_channel_deposit(Data) ->
     http_request(Host, post, "debug/channels/deposit", Data).
 
 get_channel_withdrawal(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/channel/withdrawal", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/channels/withdraw", Data).
 
 get_channel_snapshot_solo(Data) ->
     Host = external_address(),

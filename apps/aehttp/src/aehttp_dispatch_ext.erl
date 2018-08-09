@@ -540,18 +540,6 @@ handle_request('PostOracleResponse', #{'OracleResponseTx' := Req}, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('PostChannelWithdrawal', #{'ChannelWithdrawalTx' := Req}, _Context) ->
-    ParseFuns = [parse_map_to_atom_keys(),
-                 read_required_params([channel_id, to_id,
-                                       amount, fee, state_hash, round, nonce]),
-                 read_optional_params([{ttl, ttl, '$no_value'}]),
-                 base58_decode([{channel_id, channel_id, {id_hash, [channel]}},
-                                {to_id, to_id, {id_hash, [account_pubkey]}},
-                                {state_hash, state_hash, state}]),
-                 unsigned_tx_response(fun aesc_withdraw_tx:new/1)
-                ],
-    process_request(ParseFuns, Req);
-
 handle_request('PostChannelSnapshotSolo', #{'ChannelSnapshotSoloTx' := Req}, _Context) ->
     ParseFuns = [parse_map_to_atom_keys(),
                  read_required_params([channel_id, from_id,

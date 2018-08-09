@@ -1571,18 +1571,18 @@
         }
       }
     },
-    "/tx/channel/withdrawal" : {
+    "/debug/channels/withdraw" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a channel_withdrawal transaction object",
-        "operationId" : "PostChannelWithdrawal",
+        "operationId" : "PostChannelWithdraw",
         "produces" : [ "application/json" ],
         "parameters" : [ {
           "in" : "body",
           "name" : "body",
           "required" : true,
           "schema" : {
-            "$ref" : "#/definitions/ChannelWithdrawalTx"
+            "$ref" : "#/definitions/ChannelWithdrawTx"
           }
         } ],
         "responses" : {
@@ -3189,7 +3189,7 @@
         "nonce" : 0
       }
     },
-    "ChannelWithdrawalTx" : {
+    "ChannelWithdrawTx" : {
       "type" : "object",
       "required" : [ "amount", "channel_id", "fee", "nonce", "round", "state_hash", "to_id" ],
       "properties" : {
@@ -3616,7 +3616,7 @@
       "allOf" : [ {
         "$ref" : "#/definitions/GenericTx"
       }, {
-        "$ref" : "#/definitions/ChannelWithdrawalTx"
+        "$ref" : "#/definitions/ChannelWithdrawTx"
       } ]
     },
     "ChannelCloseMutualTxJSON" : {

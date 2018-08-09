@@ -1417,10 +1417,10 @@ paths:
           description: Invalid transaction
           schema:
             $ref: '#/definitions/Error'
-  /tx/channel/slash:
+  /debug/channels/slash:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostChannelSlash
       description: 'Get a channel_slash transaction object'

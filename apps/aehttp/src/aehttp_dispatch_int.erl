@@ -179,6 +179,20 @@ handle_request('PostChannelCloseSolo', #{'ChannelCloseSoloTx' := Req}, _Context)
                 ],
     process_request(ParseFuns, Req);
 
+handle_request('PostChannelSlash', #{'ChannelSlashTx' := Req}, _Context) ->
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([channel_id, from_id,
+                                       payload, poi, fee]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{channel_id, channel_id, {id_hash, [channel]}},
+                                {from_id, from_id, {id_hash, [account_pubkey]}},
+                                {poi, poi, poi}]),
+                 get_nonce_from_account_id(from_id),
+                 poi_decode(poi),
+                 unsigned_tx_response(fun aesc_slash_tx:new/1)
+                ],
+    process_request(ParseFuns, Req);
+
 handle_request('PostOracleRegisterTx', #{'OracleRegisterTx' := OracleRegisterTxObj}, _Context) ->
     #{<<"query_format">>    := QueryFormat,
       <<"response_format">> := ResponseFormat,

@@ -4479,8 +4479,8 @@ get_channel_close_solo(Data) ->
     http_request(Host, post, "debug/channels/close/solo", Data).
 
 get_channel_slash(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/channel/slash", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/channels/slash", Data).
 
 get_channel_settle(Data) ->
     Host = external_address(),

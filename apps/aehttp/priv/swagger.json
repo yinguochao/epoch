@@ -1691,9 +1691,9 @@
         }
       }
     },
-    "/tx/channel/slash" : {
+    "/debug/channels/slash" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a channel_slash transaction object",
         "operationId" : "PostChannelSlash",
         "produces" : [ "application/json" ],

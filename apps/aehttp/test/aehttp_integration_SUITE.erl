@@ -4471,8 +4471,8 @@ get_channel_snapshot_solo(Data) ->
     http_request(Host, post, "debug/channels/snapshot/solo", Data).
 
 get_channel_close_mutual(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/channel/close/mutual", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/channels/close/mutual", Data).
 
 get_channel_close_solo(Data) ->
     Host = external_address(),

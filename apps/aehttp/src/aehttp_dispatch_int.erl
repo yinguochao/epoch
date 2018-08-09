@@ -152,6 +152,18 @@ handle_request('PostChannelSnapshotSolo', #{'ChannelSnapshotSoloTx' := Req}, _Co
                 ],
     process_request(ParseFuns, Req);
 
+handle_request('PostChannelCloseMutual', #{'ChannelCloseMutualTx' := Req}, _Context) ->
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([channel_id,
+                                       initiator_amount_final,
+                                       responder_amount_final,
+                                       fee, nonce]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{channel_id, channel_id, {id_hash, [channel]}}]),
+                 unsigned_tx_response(fun aesc_close_mutual_tx:new/1)
+                ],
+    process_request(ParseFuns, Req);
+
 handle_request('PostOracleRegisterTx', #{'OracleRegisterTx' := OracleRegisterTxObj}, _Context) ->
     #{<<"query_format">>    := QueryFormat,
       <<"response_format">> := ResponseFormat,

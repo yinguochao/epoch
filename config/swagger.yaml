@@ -1238,10 +1238,10 @@ paths:
           description: Account or name not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/spend:
+  /debug/transactions/spend:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostSpend
       description: 'Get a spend transaction object'

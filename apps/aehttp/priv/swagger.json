@@ -1467,9 +1467,9 @@
         }
       }
     },
-    "/tx/spend" : {
+    "/debug/transactions/spend" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a spend transaction object",
         "operationId" : "PostSpend",
         "consumes" : [ "application/json" ],

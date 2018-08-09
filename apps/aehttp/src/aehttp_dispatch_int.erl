@@ -7,6 +7,13 @@
                         , get_block/2
                         , get_block/3
                         , get_block_from_chain/1
+                        , parse_map_to_atom_keys/0
+                        , read_required_params/1
+                        , read_optional_params/1
+                        , base58_decode/1
+                        , get_nonce_from_account_id/1
+                        , unsigned_tx_response/1
+                        , process_request/2
                         ]).
 
 -spec handle_request(
@@ -14,6 +21,21 @@
         Req :: map(),
         Context :: #{}
                    ) -> {Status :: cowboy:http_status(), Headers :: list(), Body :: map()}.
+
+handle_request('PostSpend', #{'SpendTx' := Req}, _Context) ->
+    AllowedRecipients = [account_pubkey, name, oracle_pubkey, contract_pubkey],
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([sender_id,
+                                       {recipient_id, recipient_id},
+                                        amount, fee, payload]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{sender_id, sender_id, {id_hash, [account_pubkey]}},
+                                {recipient_id, recipient_id,
+                                 {id_hash, AllowedRecipients}}]),
+                 get_nonce_from_account_id(sender_id),
+                 unsigned_tx_response(fun aec_spend_tx:new/1)
+                ],
+    process_request(ParseFuns, Req);
 
 handle_request('PostOracleRegisterTx', #{'OracleRegisterTx' := OracleRegisterTxObj}, _Context) ->
     #{<<"query_format">>    := QueryFormat,

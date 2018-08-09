@@ -1060,9 +1060,9 @@ post_spend_tx(Recipient, Amount, Fee) ->
     post_spend_tx(Recipient, Amount, Fee, <<"post spend tx">>).
 
 post_spend_tx(Recipient, Amount, Fee, Payload) ->
-    Host = external_address(),
+    Host = internal_address(),
     {ok, Sender} = rpc(aec_keys, pubkey, []),
-    http_request(Host, post, "tx/spend",
+    http_request(Host, post, "debug/transactions/spend",
                  #{sender_id => aec_base58c:encode(account_pubkey, Sender),
                    recipient_id => aec_base58c:encode(account_pubkey, Recipient),
                    amount => Amount,

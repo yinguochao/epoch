@@ -1126,10 +1126,10 @@ paths:
           description: Account not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/name/claim:
+  /debug/names/claim:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostNameClaim
       description: 'Get a name_claim transaction object'

@@ -1323,9 +1323,9 @@
         }
       }
     },
-    "/tx/name/claim" : {
+    "/debug/names/claim" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a name_claim transaction object",
         "operationId" : "PostNameClaim",
         "produces" : [ "application/json" ],

@@ -4439,8 +4439,8 @@ get_name_preclaim(Data) ->
     http_request(Host, post, "debug/names/preclaim", Data).
 
 get_name_claim(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/name/claim", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/names/claim", Data).
 
 get_name_update(Data) ->
     Host = external_address(),
@@ -4678,8 +4678,8 @@ wrong_http_method_name_preclaim(_Config) ->
     {ok, 405, _} = http_request(Host, get, "debug/names/preclaim", []).
 
 wrong_http_method_name_claim(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, get, "tx/name/claim", []).
+    Host = internal_address(),
+    {ok, 405, _} = http_request(Host, get, "debug/names/claim", []).
 
 wrong_http_method_name_transfer(_Config) ->
     Host = external_address(),

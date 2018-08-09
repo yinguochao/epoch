@@ -4455,8 +4455,8 @@ get_name_revoke(Data) ->
     http_request(Host, post, "debug/names/revoke", Data).
 
 get_channel_create(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/channel/create", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/channels/create", Data).
 
 get_channel_deposit(Data) ->
     Host = external_address(),

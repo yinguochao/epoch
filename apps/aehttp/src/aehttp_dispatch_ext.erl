@@ -540,23 +540,6 @@ handle_request('PostOracleResponse', #{'OracleResponseTx' := Req}, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('PostChannelCreate', #{'ChannelCreateTx' := Req}, _Context) ->
-    ParseFuns = [parse_map_to_atom_keys(),
-                 read_required_params([initiator_id, initiator_amount,
-                                       state_hash,
-                                       responder_id, responder_amount,
-                                       push_amount, channel_reserve,
-                                       lock_period, fee]),
-                 read_optional_params([{ttl, ttl, '$no_value'}]),
-                 base58_decode([{initiator_id, initiator_id, {id_hash, [account_pubkey]}},
-                                {responder_id, responder_id, {id_hash, [account_pubkey]}},
-                                {state_hash, state_hash, state}
-                               ]),
-                 get_nonce_from_account_id(initiator_id),
-                 unsigned_tx_response(fun aesc_create_tx:new/1)
-                ],
-    process_request(ParseFuns, Req);
-
 handle_request('PostChannelDeposit', #{'ChannelDepositTx' := Req}, _Context) ->
     ParseFuns = [parse_map_to_atom_keys(),
                  read_required_params([channel_id, from_id,

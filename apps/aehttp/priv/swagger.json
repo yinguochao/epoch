@@ -1505,9 +1505,9 @@
         }
       }
     },
-    "/tx/channel/create" : {
+    "/debug/channels/create" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a channel_create transaction object",
         "operationId" : "PostChannelCreate",
         "produces" : [ "application/json" ],

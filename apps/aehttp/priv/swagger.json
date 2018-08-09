@@ -1395,9 +1395,9 @@
         }
       }
     },
-    "/tx/name/transfer" : {
+    "/debug/names/transfer" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a name_transfer transaction object",
         "operationId" : "PostNameTransfer",
         "produces" : [ "application/json" ],

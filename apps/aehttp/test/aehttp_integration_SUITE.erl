@@ -4447,8 +4447,8 @@ get_name_update(Data) ->
     http_request(Host, post, "debug/names/update", Data).
 
 get_name_transfer(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/name/transfer", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/names/transfer", Data).
 
 get_name_revoke(Data) ->
     Host = external_address(),
@@ -4682,8 +4682,8 @@ wrong_http_method_name_claim(_Config) ->
     {ok, 405, _} = http_request(Host, get, "debug/names/claim", []).
 
 wrong_http_method_name_transfer(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, get, "tx/name/transfer", []).
+    Host = internal_address(),
+    {ok, 405, _} = http_request(Host, get, "debug/names/transfer", []).
 
 wrong_http_method_name_revoke(_Config) ->
     Host = external_address(),

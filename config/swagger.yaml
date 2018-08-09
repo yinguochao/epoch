@@ -1182,10 +1182,10 @@ paths:
           description: Account or oracle not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/name/transfer:
+  /debug/names/transfer:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostNameTransfer
       description: 'Get a name_transfer transaction object'

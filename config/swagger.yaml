@@ -1038,10 +1038,10 @@ paths:
           description: Account not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/oracle/query:
+  /debug/oracles/query:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostOracleQuery
       description: 'Get an oracle_query transaction object'

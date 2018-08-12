@@ -1213,9 +1213,9 @@
         }
       }
     },
-    "/tx/oracle/query" : {
+    "/debug/oracles/query" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get an oracle_query transaction object",
         "operationId" : "PostOracleQuery",
         "consumes" : [ "application/json" ],

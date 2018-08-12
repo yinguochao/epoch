@@ -1753,7 +1753,7 @@ post_tx(TxHash, Tx) ->
 tx_object_http_path(spend_tx) -> {internal_address(), "debug/transactions/spend"};
 tx_object_http_path(oracle_register_tx) -> {internal_address(), "debug/oracles/register"};
 tx_object_http_path(oracle_extend_tx) -> {internal_address(), "debug/oracles/extend"};
-tx_object_http_path(oracle_query_tx) -> {external_address(), "tx/oracle/query"};
+tx_object_http_path(oracle_query_tx) -> {internal_address(), "debug/oracles/query"};
 tx_object_http_path(oracle_response_tx) -> {external_address(), "tx/oracle/response"}.
 
 hash(Block) ->
@@ -4427,8 +4427,8 @@ get_oracle_extend(Data) ->
     http_request(Host, post, "debug/oracles/extend", Data).
 
 get_oracle_query(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/oracle/query", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/oracles/query", Data).
 
 get_oracle_response(Data) ->
     Host = external_address(),
@@ -4666,8 +4666,8 @@ wrong_http_method_oracle_extend(_Config) ->
     {ok, 405, _} = http_request(Host, get, "debug/oracles/extend", []).
 
 wrong_http_method_oracle_query(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, get, "tx/oracle/query", []).
+    Host = internal_address(),
+    {ok, 405, _} = http_request(Host, get, "debug/oracles/query", []).
 
 wrong_http_method_oracle_response(_Config) ->
     Host = external_address(),

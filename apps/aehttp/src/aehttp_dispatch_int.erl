@@ -206,23 +206,6 @@ handle_request('PostChannelSettle', #{'ChannelSettleTx' := Req}, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('PostOracleExtendTx', #{'OracleExtendTx' := OracleExtendTxObj}, _Context) ->
-    #{<<"oracle_ttl">> := OracleTTL,
-      <<"fee">>        := Fee} = OracleExtendTxObj,
-    TTL = maps:get(<<"ttl">>, OracleExtendTxObj, 0),
-    TTLType = delta,
-    TTLValue = maps:get(<<"value">>, OracleTTL),
-    case aehttp_int_tx_logic:oracle_extend(Fee, TTLType, TTLValue, TTL) of
-        {ok, Tx} ->
-            {Pubkey, TxHash} = aehttp_int_tx_logic:sender_and_hash(Tx),
-            {200, [], #{oracle_id => aec_base58c:encode(oracle_pubkey, Pubkey),
-                        tx_hash => aec_base58c:encode(tx_hash, TxHash)}};
-        {error, account_not_found} ->
-            {404, [], #{reason => <<"Account not found">>}};
-        {error, key_not_found} ->
-            {404, [], #{reason => <<"Keys not configured">>}}
-    end;
-
 handle_request('PostOracleQueryTx', #{'OracleQueryTx' := OracleQueryTxObj}, _Context) ->
     #{<<"oracle_pubkey">> := EncodedOraclePubkey,
       <<"query">>         := Query,

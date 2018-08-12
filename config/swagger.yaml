@@ -1544,34 +1544,6 @@ paths:
 ## Internal APIs definitions
 ###
 
-  /oracle-response-tx:
-    post:
-      tags:
-        - internal
-        - obsolete
-      operationId: PostOracleResponseTx
-      description: 'Create oracle response transaction'
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - in: body
-          name: body
-          description: Creates new oracle response transaction
-          required: true
-          schema:
-            $ref: '#/definitions/OracleResponseTx'
-      responses:
-        '200':
-          description: successful operation
-          schema:
-            $ref: '#/definitions/OracleQueryResponse'
-        '404':
-          description: Oracle response transaction validation error
-          schema:
-            $ref: '#/definitions/Error'
-      security:
   /debug/accounts/node:
     get:
       tags:
@@ -2016,13 +1988,6 @@ definitions:
     - query_id
     - response
     - fee
-  OracleQueryResponse:
-    type: object
-    properties:
-      tx_hash:
-        $ref: '#/definitions/EncodedHash'
-      query_id:
-        $ref: '#/definitions/EncodedHash'
   TTL:
     type: object
     properties:

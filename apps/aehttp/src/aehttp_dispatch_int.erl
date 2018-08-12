@@ -206,28 +206,6 @@ handle_request('PostChannelSettle', #{'ChannelSettleTx' := Req}, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('PostOracleResponseTx', #{'OracleResponseTx' := OracleResponseTxObj}, _Context) ->
-    #{<<"query_id">> := EncodedQueryId,
-      <<"response">> := Response,
-      <<"fee">>      := Fee} = OracleResponseTxObj,
-    TTL = maps:get(<<"ttl">>, OracleResponseTxObj, 0),
-    case aec_base58c:safe_decode(oracle_query_id, EncodedQueryId) of
-        {ok, DecodedQueryId} ->
-            case aehttp_int_tx_logic:oracle_response(DecodedQueryId, Response,
-                                                     Fee, TTL) of
-                {ok, Tx} ->
-                    {_, TxHash} = aehttp_int_tx_logic:sender_and_hash(Tx),
-                    {200, [], #{query_id => EncodedQueryId,
-                                tx_hash => aec_base58c:encode(tx_hash, TxHash)}};
-                {error, account_not_found} ->
-                    {404, [], #{reason => <<"Account not found">>}};
-                {error, key_not_found} ->
-                    {404, [], #{reason => <<"Keys not configured">>}}
-            end;
-        {error, _} ->
-            {404, [], #{reason => <<"Invalid Query Id">>}}
-    end;
-
 handle_request('GetNodePubkey', _, _Context) ->
     case aec_keys:pubkey() of
         {ok, Pubkey} ->

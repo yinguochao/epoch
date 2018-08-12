@@ -1544,34 +1544,6 @@ paths:
 ## Internal APIs definitions
 ###
 
-  /oracle-query-tx:
-    post:
-      tags:
-        - internal
-        - obsolete
-      operationId: PostOracleQueryTx
-      description: 'Create oracle query transaction'
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - in: body
-          name: body
-          description: Creates new oracle query transaction
-          required: true
-          schema:
-            $ref: '#/definitions/OracleQueryTx'
-      responses:
-        '200':
-          description: successful operation
-          schema:
-            $ref: '#/definitions/OracleQueryResponse'
-        '404':
-          description: Oracle query transaction validation error
-          schema:
-            $ref: '#/definitions/Error'
-      security:
   /oracle-response-tx:
     post:
       tags:

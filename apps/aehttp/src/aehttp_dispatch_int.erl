@@ -206,32 +206,6 @@ handle_request('PostChannelSettle', #{'ChannelSettleTx' := Req}, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('PostOracleQueryTx', #{'OracleQueryTx' := OracleQueryTxObj}, _Context) ->
-    #{<<"oracle_pubkey">> := EncodedOraclePubkey,
-      <<"query">>         := Query,
-      <<"query_fee">>     := QueryFee,
-      <<"query_ttl">>     := QueryTTL,
-      <<"response_ttl">>  :=
-          #{<<"type">>    := <<"delta">>,
-            <<"value">>   := ResponseTTLValue},
-      <<"fee">>           := Fee} = OracleQueryTxObj,
-    TTL = maps:get(<<"ttl">>, OracleQueryTxObj, 0),
-    QueryTTLType = binary_to_existing_atom(maps:get(<<"type">>, QueryTTL), utf8),
-    QueryTTLValue= maps:get(<<"value">>, QueryTTL),
-    case aehttp_int_tx_logic:oracle_query(EncodedOraclePubkey, Query, QueryFee, QueryTTLType,
-             QueryTTLValue, ResponseTTLValue, Fee, TTL) of
-        {ok, Tx, QId} ->
-            {_, TxHash} = aehttp_int_tx_logic:sender_and_hash(Tx),
-            {200, [], #{query_id => aec_base58c:encode(oracle_query_id, QId),
-                        tx_hash => aec_base58c:encode(tx_hash, TxHash)}};
-        {error, invalid_key} ->
-            {404, [], #{reason => <<"Invalid key">>}};
-        {error, account_not_found} ->
-            {404, [], #{reason => <<"Account not found">>}};
-        {error, key_not_found} ->
-            {404, [], #{reason => <<"Keys not configured">>}}
-    end;
-
 handle_request('PostOracleResponseTx', #{'OracleResponseTx' := OracleResponseTxObj}, _Context) ->
     #{<<"query_id">> := EncodedQueryId,
       <<"response">> := Response,

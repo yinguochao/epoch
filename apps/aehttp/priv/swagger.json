@@ -1250,11 +1250,11 @@
         }
       }
     },
-    "/tx/oracle/response" : {
+    "/debug/oracles/respond" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get an oracle_response transaction object",
-        "operationId" : "PostOracleResponse",
+        "operationId" : "PostOracleRespond",
         "consumes" : [ "application/json" ],
         "produces" : [ "application/json" ],
         "parameters" : [ {
@@ -1262,7 +1262,7 @@
           "name" : "body",
           "required" : true,
           "schema" : {
-            "$ref" : "#/definitions/OracleResponseTx"
+            "$ref" : "#/definitions/OracleRespondTx"
           }
         } ],
         "responses" : {
@@ -2517,7 +2517,7 @@
         "sender_id" : null
       }
     },
-    "OracleResponseTx" : {
+    "OracleRespondTx" : {
       "type" : "object",
       "required" : [ "fee", "query_id", "response" ],
       "properties" : {
@@ -3521,7 +3521,7 @@
       "allOf" : [ {
         "$ref" : "#/definitions/GenericTx"
       }, {
-        "$ref" : "#/definitions/OracleResponseTx"
+        "$ref" : "#/definitions/OracleRespondTx"
       } ]
     },
     "NamePreclaimTxObject" : {

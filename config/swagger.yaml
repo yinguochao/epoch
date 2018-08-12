@@ -1068,12 +1068,12 @@ paths:
           description: Account or oracle not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/oracle/response:
+  /debug/oracles/respond:
     post:
       tags:
-        - external
+        - internal
         - dev
-      operationId: PostOracleResponse
+      operationId: PostOracleRespond
       description: 'Get an oracle_response transaction object'
       consumes:
         - application/json
@@ -1084,7 +1084,7 @@ paths:
           name: body
           required: true
           schema:
-            $ref: '#/definitions/OracleResponseTx'
+            $ref: '#/definitions/OracleRespondTx'
       responses:
         '200':
           description: Successful operation
@@ -1965,7 +1965,7 @@ definitions:
     - query_ttl
     - response_ttl
     - fee
-  OracleResponseTx:
+  OracleRespondTx:
     type: object
     properties:
       query_id:
@@ -2600,7 +2600,7 @@ definitions:
   OracleResponseTxJSON:
     allOf:
       - $ref: '#/definitions/GenericTx'
-      - $ref: '#/definitions/OracleResponseTx'
+      - $ref: '#/definitions/OracleRespondTx'
   NamePreclaimTxObject:
     allOf:
       - $ref: '#/definitions/GenericTx'

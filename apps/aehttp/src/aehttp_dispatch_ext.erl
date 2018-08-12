@@ -489,18 +489,6 @@ handle_request('PostContractCallCompute', #{'ContractCallCompute' := Req}, _Cont
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('PostOracleResponse', #{'OracleResponseTx' := Req}, _Context) ->
-    ParseFuns = [parse_map_to_atom_keys(),
-                 read_required_params([oracle_id, query_id, response, fee]),
-                 read_optional_params([{ttl, ttl, '$no_value'}]),
-                 base58_decode([{oracle_id, oracle_id, {id_hash, [oracle_pubkey]}},
-                                {query_id, query_id, oracle_query_id}]),
-                 get_nonce_from_account_id(oracle_id),
-                 verify_oracle_query_existence(oracle_id, query_id),
-                 unsigned_tx_response(fun aeo_response_tx:new/1)
-                ],
-    process_request(ParseFuns, Req);
-
 handle_request('GetContractPoI', Req, _Context) ->
     ParseFuns = [read_required_params([contract]),
                  base58_decode([{contract, contract, contract_pubkey}]),

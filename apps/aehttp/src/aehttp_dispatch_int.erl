@@ -17,6 +17,7 @@
                         , ttl_decode/1
                         , relative_ttl_decode/1
                         , verify_oracle_existence/1
+                        , verify_oracle_query_existence/2
                         , poi_decode/1
                         , unsigned_tx_response/1
                         , process_request/2
@@ -245,6 +246,18 @@ handle_request('PostOracleQuery', #{'OracleQueryTx' := Req}, _Context) ->
                  relative_ttl_decode(response_ttl),
                  verify_oracle_existence(oracle_id),
                  unsigned_tx_response(fun aeo_query_tx:new/1)
+                ],
+    process_request(ParseFuns, Req);
+
+handle_request('PostOracleRespond', #{'OracleRespondTx' := Req}, _Context) ->
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([oracle_id, query_id, response, fee]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{oracle_id, oracle_id, {id_hash, [oracle_pubkey]}},
+                                {query_id, query_id, oracle_query_id}]),
+                 get_nonce_from_account_id(oracle_id),
+                 verify_oracle_query_existence(oracle_id, query_id),
+                 unsigned_tx_response(fun aeo_response_tx:new/1)
                 ],
     process_request(ParseFuns, Req);
 

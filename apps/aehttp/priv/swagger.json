@@ -1176,9 +1176,9 @@
         }
       }
     },
-    "/tx/oracle/extend" : {
+    "/debug/oracles/extend" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get an oracle_extend transaction object",
         "operationId" : "PostOracleExtend",
         "consumes" : [ "application/json" ],

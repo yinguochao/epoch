@@ -1008,10 +1008,10 @@ paths:
           description: Account not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/oracle/extend:
+  /debug/oracles/extend:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostOracleExtend
       description: 'Get an oracle_extend transaction object'

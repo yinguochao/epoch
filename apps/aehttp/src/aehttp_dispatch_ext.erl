@@ -489,17 +489,6 @@ handle_request('PostContractCallCompute', #{'ContractCallCompute' := Req}, _Cont
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('PostOracleExtend', #{'OracleExtendTx' := Req}, _Context) ->
-    ParseFuns = [parse_map_to_atom_keys(),
-                 read_required_params([oracle_id, oracle_ttl, fee]),
-                 read_optional_params([{ttl, ttl, '$no_value'}]),
-                 base58_decode([{oracle_id, oracle_id, {id_hash, [oracle_pubkey]}}]),
-                 get_nonce_from_account_id(oracle_id),
-                 ttl_decode(oracle_ttl),
-                 unsigned_tx_response(fun aeo_extend_tx:new/1)
-                ],
-    process_request(ParseFuns, Req);
-
 handle_request('PostOracleQuery', #{'OracleQueryTx' := Req}, _Context) ->
     ParseFuns = [parse_map_to_atom_keys(),
                  read_required_params([sender_id, oracle_id, query,

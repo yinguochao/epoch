@@ -206,27 +206,6 @@ handle_request('PostChannelSettle', #{'ChannelSettleTx' := Req}, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('PostOracleRegisterTx', #{'OracleRegisterTx' := OracleRegisterTxObj}, _Context) ->
-    #{<<"query_format">>    := QueryFormat,
-      <<"response_format">> := ResponseFormat,
-      <<"query_fee">>       := QueryFee,
-      <<"oracle_ttl">>      := OracleTTL,
-      <<"fee">>             := Fee} = OracleRegisterTxObj,
-    TTL = maps:get(<<"ttl">>, OracleRegisterTxObj, 0),
-    TTLType = binary_to_existing_atom(maps:get(<<"type">>, OracleTTL), utf8),
-    TTLValue = maps:get(<<"value">>, OracleTTL),
-    case aehttp_int_tx_logic:oracle_register(QueryFormat, ResponseFormat,
-                                             QueryFee, Fee, TTLType, TTLValue, TTL) of
-        {ok, Tx} ->
-            {Pubkey, TxHash} = aehttp_int_tx_logic:sender_and_hash(Tx),
-            {200, [], #{oracle_id => aec_base58c:encode(oracle_pubkey, Pubkey),
-                        tx_hash => aec_base58c:encode(tx_hash, TxHash)}};
-        {error, account_not_found} ->
-            {404, [], #{reason => <<"Account not found">>}};
-        {error, key_not_found} ->
-            {404, [], #{reason => <<"Keys not configured">>}}
-    end;
-
 handle_request('PostOracleExtendTx', #{'OracleExtendTx' := OracleExtendTxObj}, _Context) ->
     #{<<"oracle_ttl">> := OracleTTL,
       <<"fee">>        := Fee} = OracleExtendTxObj,

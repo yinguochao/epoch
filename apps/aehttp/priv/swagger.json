@@ -1139,9 +1139,9 @@
         }
       }
     },
-    "/tx/oracle/register" : {
+    "/debug/oracles/register" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a oracle_register transaction object",
         "operationId" : "PostOracleRegister",
         "consumes" : [ "application/json" ],

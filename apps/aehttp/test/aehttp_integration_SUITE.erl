@@ -1751,7 +1751,7 @@ post_tx(TxHash, Tx) ->
 
 %% TODO: use /debug/* when available
 tx_object_http_path(spend_tx) -> {internal_address(), "debug/transactions/spend"};
-tx_object_http_path(oracle_register_tx) -> {external_address(), "tx/oracle/register"};
+tx_object_http_path(oracle_register_tx) -> {internal_address(), "debug/oracles/register"};
 tx_object_http_path(oracle_extend_tx) -> {external_address(), "tx/oracle/extend"};
 tx_object_http_path(oracle_query_tx) -> {external_address(), "tx/oracle/query"};
 tx_object_http_path(oracle_response_tx) -> {external_address(), "tx/oracle/response"}.
@@ -4419,8 +4419,8 @@ get_spend(Data) ->
     http_request(Host, post, "debug/transactions/spend", Data).
 
 get_oracle_register(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/oracle/register", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/oracles/register", Data).
 
 get_oracle_extend(Data) ->
     Host = external_address(),
@@ -4658,8 +4658,8 @@ wrong_http_method_spend(_Config) ->
     {ok, 405, _} = http_request(Host, get, "debug/transactions/spend", []).
 
 wrong_http_method_oracle_register(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, get, "tx/oracle/register", []).
+    Host = internal_address(),
+    {ok, 405, _} = http_request(Host, get, "debug/oracles/register", []).
 
 wrong_http_method_oracle_extend(_Config) ->
     Host = external_address(),

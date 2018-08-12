@@ -978,10 +978,10 @@ paths:
           description: Caller account or contract not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/oracle/register:
+  /debug/oracles/register:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostOracleRegister
       description: 'Get a oracle_register transaction object'

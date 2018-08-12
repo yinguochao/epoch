@@ -14,6 +14,7 @@
                         , get_nonce_from_account_id/1
                         , verify_name/1
                         , nameservice_pointers_decode/1
+                        , ttl_decode/1
                         , poi_decode/1
                         , unsigned_tx_response/1
                         , process_request/2
@@ -203,6 +204,19 @@ handle_request('PostChannelSettle', #{'ChannelSettleTx' := Req}, _Context) ->
                  base58_decode([{channel_id, channel_id, {id_hash, [channel]}},
                                 {from_id, from_id, {id_hash, [account_pubkey]}}]),
                  unsigned_tx_response(fun aesc_settle_tx:new/1)
+                ],
+    process_request(ParseFuns, Req);
+
+handle_request('PostOracleRegister', #{'OracleRegisterTx' := Req}, _Context) ->
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([account_id, {query_format, query_format},
+                                       {response_format, response_format},
+                                       query_fee, oracle_ttl, fee]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{account_id, account_id, {id_hash, [account_pubkey]}}]),
+                 get_nonce_from_account_id(account_id),
+                 ttl_decode(oracle_ttl),
+                 unsigned_tx_response(fun aeo_register_tx:new/1)
                 ],
     process_request(ParseFuns, Req);
 

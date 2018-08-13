@@ -19,7 +19,9 @@
                         , verify_oracle_existence/1
                         , verify_oracle_query_existence/2
                         , poi_decode/1
+                        , hexstrings_decode/1
                         , unsigned_tx_response/1
+                        , ok_response/1
                         , process_request/2
                         ]).
 
@@ -41,6 +43,28 @@ handle_request('PostSpend', #{'SpendTx' := Req}, _Context) ->
                                  {id_hash, AllowedRecipients}}]),
                  get_nonce_from_account_id(sender_id),
                  unsigned_tx_response(fun aec_spend_tx:new/1)
+                ],
+    process_request(ParseFuns, Req);
+
+handle_request('PostContractCreate', #{'ContractCreateData' := Req}, _Context) ->
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([owner_id, code, vm_version, deposit,
+                                       amount, gas, gas_price, fee, call_data]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{owner_id, owner_id, {id_hash, [account_pubkey]}}]),
+                 get_nonce_from_account_id(owner_id),
+                 hexstrings_decode([code, call_data]),
+                 ok_response(
+                    fun(Data) ->
+                        {ok, Tx} = aect_create_tx:new(Data),
+                        {CB, CTx} = aetx:specialize_callback(Tx),
+                        ContractPubKey = CB:contract_pubkey(CTx),
+                        #{tx => aec_base58c:encode(transaction,
+                                                  aetx:serialize_to_binary(Tx)),
+                          contract_id =>
+                              aec_base58c:encode(contract_pubkey, ContractPubKey)
+                         }
+                    end)
                 ],
     process_request(ParseFuns, Req);
 

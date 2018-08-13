@@ -1037,8 +1037,8 @@ get_top() ->
     http_request(Host, get, "top", []).
 
 get_contract_create(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/contract/create", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/contracts/create", Data).
 
 get_contract_call(Data) ->
     Host = external_address(),

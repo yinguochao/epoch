@@ -858,10 +858,10 @@ paths:
           description: Transaction not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/contract/create:
+  /debug/contracts/create:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostContractCreate
       description: 'Get a contract_create transaction object'

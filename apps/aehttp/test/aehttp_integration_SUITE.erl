@@ -4382,8 +4382,8 @@ ws_mine_key_and_micro_block(ConnPid, Node) ->
 %% ============================================================
 
 get_contract_create(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/contract/create", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/contracts/create", Data).
 
 get_contract_create_compute(Data) ->
     Host = external_address(),
@@ -4638,8 +4638,8 @@ wrong_http_method_top(_Config) ->
     {ok, 405, _} = http_request(Host, post, "blocks/top", []).
 
 wrong_http_method_contract_create(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, get, "tx/contract/create", []).
+    Host = internal_address(),
+    {ok, 405, _} = http_request(Host, get, "debug/contracts/create", []).
 
 wrong_http_method_contract_create_compute(_Config) ->
     Host = external_address(),

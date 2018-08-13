@@ -991,9 +991,9 @@
         }
       }
     },
-    "/tx/contract/create" : {
+    "/debug/contracts/create" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Get a contract_create transaction object",
         "operationId" : "PostContractCreate",
         "consumes" : [ "application/json" ],

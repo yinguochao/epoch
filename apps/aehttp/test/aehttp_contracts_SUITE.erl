@@ -1041,8 +1041,8 @@ get_contract_create(Data) ->
     http_request(Host, post, "debug/contracts/create", Data).
 
 get_contract_call(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/contract/call", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/contracts/call", Data).
 
 get_contract_call_object(TxHash) ->
     Host = external_address(),

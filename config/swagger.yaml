@@ -918,10 +918,10 @@ paths:
           description: Owner account not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/contract/call:
+  /debug/contracts/call:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostContractCall
       description: 'Get a contract_call transaction object'

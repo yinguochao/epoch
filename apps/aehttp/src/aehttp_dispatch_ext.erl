@@ -414,20 +414,6 @@ handle_request('PostBlock', Req, _Context) ->
             end
     end;
 
-handle_request('PostContractCall', #{'ContractCallData' := Req}, _Context) ->
-    ParseFuns = [parse_map_to_atom_keys(),
-                 read_required_params([caller_id, contract_id, vm_version,
-                                       amount, gas, gas_price, fee, call_data]),
-                 read_optional_params([{ttl, ttl, '$no_value'}]),
-                 base58_decode([{caller_id, caller_id, {id_hash, [account_pubkey]}},
-                                {contract_id, contract_id, {id_hash, [contract_pubkey]}}]),
-                 get_nonce_from_account_id(caller_id),
-                 get_contract_code(contract_id, contract_code),
-                 hexstrings_decode([call_data]),
-                 unsigned_tx_response(fun aect_call_tx:new/1)
-                ],
-    process_request(ParseFuns, Req);
-
 handle_request('PostContractCallCompute', #{'ContractCallCompute' := Req}, _Context) ->
     ParseFuns = [parse_map_to_atom_keys(),
                  read_required_params([caller_id, contract_id, vm_version,

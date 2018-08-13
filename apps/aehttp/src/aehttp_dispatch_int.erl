@@ -12,6 +12,7 @@
                         , read_optional_params/1
                         , base58_decode/1
                         , get_nonce_from_account_id/1
+                        , get_contract_code/2
                         , compute_contract_create_data/0
                         , verify_name/1
                         , nameservice_pointers_decode/1
@@ -90,6 +91,20 @@ handle_request('PostContractCreateCompute', #{'ContractCreateCompute' := Req}, _
                               aec_base58c:encode(contract_pubkey, ContractPubKey)
                          }
                     end)
+                ],
+    process_request(ParseFuns, Req);
+
+handle_request('PostContractCall', #{'ContractCallData' := Req}, _Context) ->
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([caller_id, contract_id, vm_version,
+                                       amount, gas, gas_price, fee, call_data]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{caller_id, caller_id, {id_hash, [account_pubkey]}},
+                                {contract_id, contract_id, {id_hash, [contract_pubkey]}}]),
+                 get_nonce_from_account_id(caller_id),
+                 get_contract_code(contract_id, contract_code),
+                 hexstrings_decode([call_data]),
+                 unsigned_tx_response(fun aect_call_tx:new/1)
                 ],
     process_request(ParseFuns, Req);
 

@@ -4386,8 +4386,8 @@ get_contract_create(Data) ->
     http_request(Host, post, "debug/contracts/create", Data).
 
 get_contract_create_compute(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/contract/create/compute", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/contracts/create/compute", Data).
 
 get_contract_bytecode(SourceCode) ->
     Host = external_address(),
@@ -4642,8 +4642,8 @@ wrong_http_method_contract_create(_Config) ->
     {ok, 405, _} = http_request(Host, get, "debug/contracts/create", []).
 
 wrong_http_method_contract_create_compute(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, get, "tx/contract/create/compute", []).
+    Host = internal_address(),
+    {ok, 405, _} = http_request(Host, get, "debug/contracts/create/compute", []).
 
 wrong_http_method_contract_call(_Config) ->
     Host = external_address(),

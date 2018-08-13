@@ -888,10 +888,10 @@ paths:
           description: Owner account not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/contract/create/compute:
+  /debug/contracts/create/compute:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostContractCreateCompute
       description: 'Compute the call_data for SOPHIA and get a contract_create transaction object'

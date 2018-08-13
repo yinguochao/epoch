@@ -1028,9 +1028,9 @@
         }
       }
     },
-    "/tx/contract/create/compute" : {
+    "/debug/contracts/create/compute" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Compute the call_data for SOPHIA and get a contract_create transaction object",
         "operationId" : "PostContractCreateCompute",
         "consumes" : [ "application/json" ],

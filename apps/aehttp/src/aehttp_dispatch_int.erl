@@ -12,6 +12,7 @@
                         , read_optional_params/1
                         , base58_decode/1
                         , get_nonce_from_account_id/1
+                        , compute_contract_create_data/0
                         , verify_name/1
                         , nameservice_pointers_decode/1
                         , ttl_decode/1
@@ -54,6 +55,30 @@ handle_request('PostContractCreate', #{'ContractCreateData' := Req}, _Context) -
                  base58_decode([{owner_id, owner_id, {id_hash, [account_pubkey]}}]),
                  get_nonce_from_account_id(owner_id),
                  hexstrings_decode([code, call_data]),
+                 ok_response(
+                    fun(Data) ->
+                        {ok, Tx} = aect_create_tx:new(Data),
+                        {CB, CTx} = aetx:specialize_callback(Tx),
+                        ContractPubKey = CB:contract_pubkey(CTx),
+                        #{tx => aec_base58c:encode(transaction,
+                                                  aetx:serialize_to_binary(Tx)),
+                          contract_id =>
+                              aec_base58c:encode(contract_pubkey, ContractPubKey)
+                         }
+                    end)
+                ],
+    process_request(ParseFuns, Req);
+
+handle_request('PostContractCreateCompute', #{'ContractCreateCompute' := Req}, _Context) ->
+    ParseFuns = [parse_map_to_atom_keys(),
+                 read_required_params([owner_id, code, vm_version, deposit,
+                                       amount, gas, gas_price, fee,
+                                       arguments]),
+                 read_optional_params([{ttl, ttl, '$no_value'}]),
+                 base58_decode([{owner_id, owner_id, {id_hash, [account_pubkey]}}]),
+                 get_nonce_from_account_id(owner_id),
+                 hexstrings_decode([code]),
+                 compute_contract_create_data(),
                  ok_response(
                     fun(Data) ->
                         {ok, Tx} = aect_create_tx:new(Data),

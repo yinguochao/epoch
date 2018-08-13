@@ -354,7 +354,8 @@ stop_and_continue_sync(Cfg) ->
     %% Start fetching the chain
     start_node(node2, Cfg),
 
-    inject_spend_txs(node1, patron(), 20, 51, 100),
+    %% Don't add many txs here, it will give additional time to sync
+    inject_spend_txs(node1, patron(), 4, 51, 100),
 
     wait_for_value({height, 0}, [node2], NodeStartupTime, Cfg),
     ct:log("Node 2 ready to go"),
@@ -511,8 +512,8 @@ net_split_recovery(Cfg) ->
     %% Starts with a net split
     wait_for_value({height, 0}, [net1_node1, net2_node1], proplists:get_value(node_startup_time, Cfg), Cfg),
 
-    inject_spend_txs(net1_node1, patron(), 20, 1, 100),
-    inject_spend_txs(net2_node1, patron(), 20, 1, 100),
+    inject_spend_txs(net1_node1, patron(), 5, 1, 100),
+    inject_spend_txs(net2_node1, patron(), 5, 1, 100),
 
     TargetHeight1 = Length,
     %% Wait for one extra block for resolving potential fork caused by nodes mining distinct blocks at the same time.
@@ -538,8 +539,8 @@ net_split_recovery(Cfg) ->
     connect_node(net2_node2, net1, Cfg),
     T0 = erlang:system_time(millisecond),
 
-    inject_spend_txs(net1_node1, patron(), 20, 21, 100),
-    inject_spend_txs(net2_node1, patron(), 20, 21, 100),
+    inject_spend_txs(net1_node1, patron(), 5, 6, 100),
+    inject_spend_txs(net2_node1, patron(), 5, 11, 100),
 
     %% Mine Length blocks, this may take longer than ping interval
     %% if so, the chains should be in sync when it's done.
@@ -625,18 +626,18 @@ net_split_mining_power(Cfg) ->
     SyncLength = 20,
     ExtraLength = 3,
 
-    Net1Nodes = [net1_node1, net1_node2],
-    Net2Nodes = [net2_node1, net2_node2, net2_node3, net2_node4],
+    Net1Nodes = [net1_node1],
+    Net2Nodes = [net2_node1, net2_node2, net2_node3],
     AllNodes = Net1Nodes ++ Net2Nodes,
 
-    setup_nodes([?NET1_NODE1, ?NET1_NODE2, ?NET2_NODE1,
-                 ?NET2_NODE2, ?NET2_NODE3, ?NET2_NODE4], Cfg),
+    setup_nodes([?NET1_NODE1, ?NET1_NODE2,
+                 ?NET2_NODE1, ?NET2_NODE2, ?NET2_NODE3], Cfg),
 
     lists:foreach(fun(N) -> start_node(N, Cfg) end, Net2Nodes),
     lists:foreach(fun(N) -> start_node(N, Cfg) end, Net1Nodes),
 
     TargetHeight1 = SplitLength,
-    %% Wait for one extra block for resolving potential fork caused by nodes mining distinct blocks at the same time.
+    %% Wait for some extra blocks for resolving potential fork caused by nodes mining distinct blocks at the same time.
     MinedHeight1 = ExtraLength + TargetHeight1,
     wait_for_value({height, MinedHeight1}, AllNodes,
                    (ExtraLength + SplitLength) * ?MINING_TIMEOUT, Cfg),
@@ -660,7 +661,7 @@ net_split_mining_power(Cfg) ->
     %% Check that the chains are different
     ?assertNotEqual(N1A1, N2A1),
 
-    % Check that the 4 node cluster has more mining power.
+    % Check that the larger cluster has more mining power.
     Net1MinedBlocks1 = node_mined_retries(Net1Nodes),
     Net2MinedBlocks1 = node_mined_retries(Net2Nodes),
     ?assert(Net1MinedBlocks1 < Net2MinedBlocks1),
@@ -692,7 +693,7 @@ net_split_mining_power(Cfg) ->
     {ok, 200, #{height := Top2}} = request(net1_node1, 'GetTop', #{}),
     ct:log("Height reached ~p", [Top2]),
 
-    % Check that the 4 node cluster has still more mining power.
+    % Check that the larger cluster has still more mining power.
     Net1MinedBlocks2 = node_mined_retries(Net1Nodes),
     Net2MinedBlocks2 = node_mined_retries(Net2Nodes),
     ?assert(Net1MinedBlocks2 < Net2MinedBlocks2),

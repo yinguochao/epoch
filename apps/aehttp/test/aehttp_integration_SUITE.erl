@@ -4403,8 +4403,8 @@ get_contract_call(Data) ->
     http_request(Host, post, "debug/contracts/call", Data).
 
 get_contract_call_compute(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "tx/contract/call/compute", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/contracts/call/compute", Data).
 
 get_contract_call_object(TxHash) ->
     Host = external_address(),
@@ -4650,8 +4650,8 @@ wrong_http_method_contract_call(_Config) ->
     {ok, 405, _} = http_request(Host, get, "debug/contracts/call", []).
 
 wrong_http_method_contract_call_compute(_Config) ->
-    Host = external_address(),
-    {ok, 405, _} = http_request(Host, get, "tx/contract/call/compute", []).
+    Host = internal_address(),
+    {ok, 405, _} = http_request(Host, get, "debug/contracts/call/compute", []).
 
 wrong_http_method_spend(_Config) ->
     Host = internal_address(),

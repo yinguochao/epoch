@@ -948,10 +948,10 @@ paths:
           description: Caller account or contract not found
           schema:
             $ref: '#/definitions/Error'
-  /tx/contract/call/compute:
+  /debug/contracts/call/compute:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: PostContractCallCompute
       description: 'Compute the call_data for SOPHIA and get contract_call transaction object'

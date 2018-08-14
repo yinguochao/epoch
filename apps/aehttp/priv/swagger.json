@@ -1881,9 +1881,9 @@
         }
       }
     },
-    "/contract/call" : {
+    "/debug/contracts/code/call" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Call a sophia function with a given name and argument in the given bytecode off chain.",
         "operationId" : "CallContract",
         "consumes" : [ "application/json" ],

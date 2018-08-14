@@ -419,22 +419,6 @@ handle_request('GetContractCallFromTx', Req, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('CallContract', Req, _Context) ->
-    case Req of
-        #{'ContractCallInput' :=
-              #{ <<"abi">> := ABI
-               , <<"code">> := Code
-               , <<"function">> := Function
-               , <<"arg">> := Argument }}  ->
-            case aehttp_logic:contract_call(ABI, Code, Function, Argument) of
-                {ok, Result} ->
-                    {200, [], #{ out => Result}};
-                {error, ErrorMsg} ->
-                    {403, [], #{reason => ErrorMsg}}
-            end;
-        _ -> {403, [], #{reason => <<"Bad request">>}}
-    end;
-
 handle_request('EncodeCalldata', Req, _Context) ->
     case Req of
         #{'ContractCallInput' :=

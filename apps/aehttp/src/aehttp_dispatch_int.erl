@@ -139,6 +139,22 @@ handle_request('CompileContract', Req, _Context) ->
         _ -> {403, [], #{reason => <<"Bad request">>}}
     end;
 
+handle_request('CallContract', Req, _Context) ->
+    case Req of
+        #{'ContractCallInput' :=
+              #{ <<"abi">> := ABI
+               , <<"code">> := Code
+               , <<"function">> := Function
+               , <<"arg">> := Argument }}  ->
+            case aehttp_logic:contract_call(ABI, Code, Function, Argument) of
+                {ok, Result} ->
+                    {200, [], #{ out => Result}};
+                {error, ErrorMsg} ->
+                    {403, [], #{reason => ErrorMsg}}
+            end;
+        _ -> {403, [], #{reason => <<"Bad request">>}}
+    end;
+
 handle_request('PostNamePreclaim', #{'NamePreclaimTx' := Req}, _Context) ->
     ParseFuns = [parse_map_to_atom_keys(),
                  read_required_params([account_id, commitment_id, fee]),

@@ -1583,10 +1583,10 @@ paths:
           description: Invalid contract
           schema:
             $ref: '#/definitions/Error'
-  /contract/call:
+  /debug/contracts/code/call:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: 'CallContract'
       description: 'Call a sophia function with a given name and argument in the given bytecode off chain.'

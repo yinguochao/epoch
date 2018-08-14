@@ -4395,8 +4395,8 @@ get_contract_bytecode(SourceCode) ->
                  #{ <<"code">> => SourceCode, <<"options">> => <<>>}).
 
 call_contract_directly(Data) ->
-    Host = external_address(),
-    http_request(Host, post, "contract/call", Data).
+    Host = internal_address(),
+    http_request(Host, post, "debug/contracts/code/call", Data).
 
 get_contract_call(Data) ->
     Host = internal_address(),

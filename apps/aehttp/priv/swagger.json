@@ -956,41 +956,6 @@
         }
       }
     },
-    "/tx/{tx_hash}/contract-call" : {
-      "get" : {
-        "tags" : [ "external", "transactions" ],
-        "description" : "Get the call result for a contract_create or contract_call transaction",
-        "operationId" : "GetContractCallFromTx",
-        "produces" : [ "application/json" ],
-        "parameters" : [ {
-          "name" : "tx_hash",
-          "in" : "path",
-          "description" : "Hash of the transaction",
-          "required" : true,
-          "type" : "string"
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "The contract call result was found",
-            "schema" : {
-              "$ref" : "#/definitions/ContractCallObject"
-            }
-          },
-          "400" : {
-            "description" : "Invalid transaction",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          },
-          "404" : {
-            "description" : "Transaction not found",
-            "schema" : {
-              "$ref" : "#/definitions/Error"
-            }
-          }
-        }
-      }
-    },
     "/debug/contracts/create" : {
       "post" : {
         "tags" : [ "internal", "dev" ],

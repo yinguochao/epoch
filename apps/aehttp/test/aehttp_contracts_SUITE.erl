@@ -1046,7 +1046,7 @@ get_contract_call(Data) ->
 
 get_contract_call_object(TxHash) ->
     Host = external_address(),
-    http_request(Host, get, "tx/"++binary_to_list(TxHash)++"/contract-call", []).
+    http_request(Host, get, "transactions/"++binary_to_list(TxHash)++"/info", []).
 
 get_contract_decode_data(Request) ->
     Host = external_address(),

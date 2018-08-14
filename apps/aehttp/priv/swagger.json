@@ -1945,9 +1945,9 @@
         }
       }
     },
-    "/contract/encode-calldata" : {
+    "/debug/contracts/code/encode-calldata" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Encode sophia data and function name according to sophia ABI.",
         "operationId" : "EncodeCalldata",
         "consumes" : [ "application/json" ],

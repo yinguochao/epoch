@@ -169,6 +169,23 @@ handle_request('DecodeData', Req, _Context) ->
             end
     end;
 
+handle_request('EncodeCalldata', Req, _Context) ->
+    case Req of
+        #{'ContractCallInput' :=
+              #{ <<"abi">>  := ABI
+               , <<"code">> := Code
+               , <<"function">> := Function
+               , <<"arg">> := Argument }} ->
+            %% TODO: Handle other languages
+            case aehttp_logic:contract_encode_call_data(ABI, Code, Function, Argument) of
+                {ok, Result} ->
+                    {200, [], #{ calldata => Result}};
+                {error, ErrorMsg} ->
+                    {403, [], #{reason => ErrorMsg}}
+            end;
+        _ -> {403, [], #{reason => <<"Bad request">>}}
+    end;
+
 handle_request('PostNamePreclaim', #{'NamePreclaimTx' := Req}, _Context) ->
     ParseFuns = [parse_map_to_atom_keys(),
                  read_required_params([account_id, commitment_id, fee]),

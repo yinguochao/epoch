@@ -419,23 +419,6 @@ handle_request('GetContractCallFromTx', Req, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('EncodeCalldata', Req, _Context) ->
-    case Req of
-        #{'ContractCallInput' :=
-              #{ <<"abi">>  := ABI
-               , <<"code">> := Code
-               , <<"function">> := Function
-               , <<"arg">> := Argument }} ->
-            %% TODO: Handle other languages
-            case aehttp_logic:contract_encode_call_data(ABI, Code, Function, Argument) of
-                {ok, Result} ->
-                    {200, [], #{ calldata => Result}};
-                {error, ErrorMsg} ->
-                    {403, [], #{reason => ErrorMsg}}
-            end;
-        _ -> {403, [], #{reason => <<"Bad request">>}}
-    end;
-
 handle_request('GetPeerKey', _Req, _Context) ->
     case aehttp_logic:peer_pubkey() of
         {ok, PeerKey} ->

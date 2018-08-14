@@ -1637,10 +1637,10 @@ paths:
           description: Invalid data
           schema:
             $ref: '#/definitions/Error'
-  /contract/encode-calldata:
+  /debug/contracts/code/encode-calldata:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: 'EncodeCalldata'
       description: 'Encode sophia data and function name according to sophia ABI.'

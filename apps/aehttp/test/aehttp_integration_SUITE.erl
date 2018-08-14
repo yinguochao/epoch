@@ -2947,7 +2947,7 @@ node_pubkey(_Config) ->
 
 peer_pub_key(_Config) ->
     {ok, PeerPubKey} = rpc(aec_keys, peer_pubkey, []),
-    {ok, 200, #{<<"pub_key">> := EncodedPubKey}} = get_peer_pub_key(),
+    {ok, 200, #{<<"pubkey">> := EncodedPubKey}} = get_peer_pub_key(),
     ct:log("PeerPubkey = ~p~nEncodedPubKey = ~p", [PeerPubKey,
                                                     EncodedPubKey]),
     {ok, PeerPubKey} = aec_base58c:safe_decode(peer_pubkey, EncodedPubKey),
@@ -4522,7 +4522,7 @@ get_node_pubkey() ->
 
 get_peer_pub_key() ->
     Host = external_address(),
-    http_request(Host, get, "peer/key", []).
+    http_request(Host, get, "peers/pubkey", []).
 
 get_peers() ->
     Host = internal_address(),

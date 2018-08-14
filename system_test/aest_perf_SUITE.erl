@@ -157,19 +157,17 @@ stay_in_sync(Cfg) ->
     % additional 20% of the original mining time. It asserts that the network
     % does not fork.
     Height = ?cfg(height),
-    Nodes = [n1, n2, n3, n4, n5, n6],
+    Nodes = [n1, n2, n3, n4, n5],
     setup_nodes(cluster(Nodes, #{
         mine_rate => ?cfg(mine_rate),
         source => ?cfg(source)
     }), Cfg),
     [start_node(N, Cfg) || N <- Nodes],
     wait_for_startup(Nodes, Height, Cfg),
-    Fifth = floor(time_to_ms(?cfg(mine_time)) / 5),
-    Reached = wait_for_time(height, Nodes, Fifth, #{
-        interval => ?cfg(mine_interval)
-    }),
 
-    Blocks = [{N, get_block(N, Reached)} || N <- Nodes],
+    wait_for_value({height, Height + 41}, Nodes, 41*1000, Cfg),
+
+    Blocks = [{N, get_block(N, Height + 40)} || N <- Nodes],
     [?assertEqual(AB, BB) || {AN, AB} <- Blocks, {BN, BB} <- Blocks, AN =/= BN].
 
 %=== INTERNAL FUNCTIONS ========================================================

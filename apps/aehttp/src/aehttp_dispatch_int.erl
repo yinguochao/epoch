@@ -124,6 +124,21 @@ handle_request('PostContractCallCompute', #{'ContractCallCompute' := Req}, _Cont
                 ],
     process_request(ParseFuns, Req);
 
+handle_request('CompileContract', Req, _Context) ->
+    case Req of
+        #{'Contract' :=
+              #{ <<"code">> := Code
+               , <<"options">> := Options }} ->
+            %% TODO: Handle other languages
+            case aehttp_logic:contract_compile(Code, Options) of
+                 {ok, ByteCode} ->
+                     {200, [], #{ bytecode => ByteCode}};
+                 {error, ErrorMsg} ->
+                     {403, [], #{reason => ErrorMsg}}
+             end;
+        _ -> {403, [], #{reason => <<"Bad request">>}}
+    end;
+
 handle_request('PostNamePreclaim', #{'NamePreclaimTx' := Req}, _Context) ->
     ParseFuns = [parse_map_to_atom_keys(),
                  read_required_params([account_id, commitment_id, fee]),

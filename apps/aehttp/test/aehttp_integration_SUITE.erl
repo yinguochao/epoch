@@ -4390,9 +4390,9 @@ get_contract_create_compute(Data) ->
     http_request(Host, post, "debug/contracts/create/compute", Data).
 
 get_contract_bytecode(SourceCode) ->
-    Host = external_address(),
-    http_request(Host, post, "contract/compile", #{ <<"code">> => SourceCode
-                                                  , <<"options">> => <<>>}).
+    Host = internal_address(),
+    http_request(Host, post, "debug/contracts/code/compile",
+                 #{ <<"code">> => SourceCode, <<"options">> => <<>>}).
 
 call_contract_directly(Data) ->
     Host = external_address(),

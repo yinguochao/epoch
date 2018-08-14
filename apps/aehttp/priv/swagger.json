@@ -1849,9 +1849,9 @@
         }
       }
     },
-    "/contract/compile" : {
+    "/debug/contracts/code/compile" : {
       "post" : {
-        "tags" : [ "external", "dev" ],
+        "tags" : [ "internal", "dev" ],
         "description" : "Compile a sophia contract from source and return byte code",
         "operationId" : "CompileContract",
         "consumes" : [ "application/json" ],

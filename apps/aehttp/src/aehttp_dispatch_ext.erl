@@ -419,21 +419,6 @@ handle_request('GetContractCallFromTx', Req, _Context) ->
                 ],
     process_request(ParseFuns, Req);
 
-handle_request('CompileContract', Req, _Context) ->
-    case Req of
-        #{'Contract' :=
-              #{ <<"code">> := Code
-               , <<"options">> := Options }} ->
-            %% TODO: Handle other languages
-            case aehttp_logic:contract_compile(Code, Options) of
-                 {ok, ByteCode} ->
-                     {200, [], #{ bytecode => ByteCode}};
-                 {error, ErrorMsg} ->
-                     {403, [], #{reason => ErrorMsg}}
-             end;
-        _ -> {403, [], #{reason => <<"Bad request">>}}
-    end;
-
 handle_request('CallContract', Req, _Context) ->
     case Req of
         #{'ContractCallInput' :=

@@ -1556,10 +1556,10 @@ paths:
           schema:
             $ref: '#/definitions/Error'
       security:
-  /contract/compile:
+  /debug/contracts/code/compile:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: 'CompileContract'
       description: 'Compile a sophia contract from source and return byte code'

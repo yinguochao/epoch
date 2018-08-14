@@ -1610,10 +1610,10 @@ paths:
           description: Invalid contract
           schema:
             $ref: '#/definitions/Error'
-  /contract/decode-data:
+  /debug/contracts/code/decode-data:
     post:
       tags:
-        - external
+        - internal
         - dev
       operationId: 'DecodeData'
       description: 'Decode Sophia return data encoded according to Sophia ABI.'

@@ -436,20 +436,6 @@ handle_request('EncodeCalldata', Req, _Context) ->
         _ -> {403, [], #{reason => <<"Bad request">>}}
     end;
 
-handle_request('DecodeData', Req, _Context) ->
-    case Req of
-        #{'SophiaBinaryData' :=
-              #{ <<"sophia-type">>  := Type
-               , <<"data">>  := Data
-               }} ->
-            case aehttp_logic:contract_decode_data(Type, Data) of
-                {ok, Result} ->
-                    {200, [], #{ data => Result}};
-                {error, ErrorMsg} ->
-                    {400, [], #{reason => ErrorMsg}}
-            end
-    end;
-
 handle_request('GetPeerKey', _Req, _Context) ->
     case aehttp_logic:peer_pubkey() of
         {ok, PeerKey} ->

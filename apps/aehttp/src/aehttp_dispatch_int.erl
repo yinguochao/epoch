@@ -155,6 +155,20 @@ handle_request('CallContract', Req, _Context) ->
         _ -> {403, [], #{reason => <<"Bad request">>}}
     end;
 
+handle_request('DecodeData', Req, _Context) ->
+    case Req of
+        #{'SophiaBinaryData' :=
+              #{ <<"sophia-type">>  := Type
+               , <<"data">>  := Data
+               }} ->
+            case aehttp_logic:contract_decode_data(Type, Data) of
+                {ok, Result} ->
+                    {200, [], #{ data => Result}};
+                {error, ErrorMsg} ->
+                    {400, [], #{reason => ErrorMsg}}
+            end
+    end;
+
 handle_request('PostNamePreclaim', #{'NamePreclaimTx' := Req}, _Context) ->
     ParseFuns = [parse_map_to_atom_keys(),
                  read_required_params([account_id, commitment_id, fee]),

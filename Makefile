@@ -40,7 +40,7 @@ PYTHON_TESTS = $(PYTHON_DIR)/tests
 PIP = $(PYTHON_BIN)/pip
 
 export AEVM_EXTERNAL_TEST_DIR=aevm_external
-export AEVM_EXTERNAL_TEST_VERSION=477114bbd
+export AEVM_EXTERNAL_TEST_VERSION=41a349dd1
 
 HTTP_APP = apps/aehttp
 SWTEMP := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')

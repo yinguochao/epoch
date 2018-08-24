@@ -18,7 +18,8 @@
          name_claim_preclaim_delta/0,
          name_registrars/0,
          micro_block_cycle/0,
-         accepted_future_block_time_shift/0]).
+         accepted_future_block_time_shift/0,
+         fraud_reward/0]).
 
 -export_type([protocols/0]).
 
@@ -69,6 +70,9 @@ expected_block_mine_rate() ->
 
 block_mine_reward() ->
     ?BLOCK_MINE_REWARD.
+
+fraud_reward() ->
+    0.1*block_mine_reward().
 
 max_txs_in_block() ->
     %% TODO: Consider trade-offs sync latency vs pow time

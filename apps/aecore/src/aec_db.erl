@@ -26,7 +26,7 @@
 %% Mimicking the aec_persistence API used by aec_conductor_chain
 -export([has_block/1,
          write_block/1,
-         write_block_state/6,
+         write_block_state/7,
          write_genesis_hash/1,
          write_top_block_hash/1,
          write_top_block_height/1,
@@ -86,6 +86,7 @@
         , find_block_fees/1
         , find_block_fork_id/1
         , find_block_key_hash/1
+        , find_block_fraud_status/1
         , find_block_state_and_data/1
         ]).
 
@@ -305,14 +306,15 @@ find_headers_at_height(Height) when is_integer(Height), Height >= 0 ->
     ?t([H || #aec_headers{value = H}
                  <- mnesia:index_read(aec_headers, Height, height)]).
 
-write_block_state(Hash, Trees, AccDifficulty, ForkId, Fees, KeyHash) ->
+write_block_state(Hash, Trees, AccDifficulty, ForkId, Fees, KeyHash, Fraud) ->
     ?t(begin
            Trees1 = aec_trees:serialize_for_db(aec_trees:commit_to_db(Trees)),
            mnesia:write(#aec_block_state{key = Hash, value = Trees1,
                                          difficulty = AccDifficulty,
                                          fork_id = ForkId,
                                          fees = Fees,
-                                         key_hash = KeyHash
+                                         key_hash = KeyHash,
+                                         fraud = Fraud
                                         })
                end
       ).
@@ -394,6 +396,12 @@ find_block_fork_id(Hash) ->
 find_block_key_hash(Hash) ->
     case ?t(mnesia:read(aec_block_state, Hash)) of
         [#aec_block_state{key_hash = KH}] -> {value, KH};
+        [] -> none
+    end.
+
+find_block_fraud_status(Hash) ->
+    case ?t(mnesia:read(aec_block_state, Hash)) of
+        [#aec_block_state{fraud = FS}] -> {value, FS};
         [] -> none
     end.
 

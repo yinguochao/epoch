@@ -31,6 +31,7 @@
          set_miner/2,
          set_nonce/2,
          set_nonce_and_pow/3,
+         set_pof/2,
          set_prev_hash/2,
          set_root_hash/2,
          set_signature/2,
@@ -283,6 +284,10 @@ txs(Block) ->
 -spec set_txs(micro_block(), tx_list()) -> micro_block().
 set_txs(Block, Txs) ->
     Block#mic_block{txs = Txs}.
+
+-spec set_pof(micro_block(), tuple()) -> micro_block().
+set_pof(Block, PoF) ->
+    set_header(Block, aec_headers:set_pof(to_micro_header(Block), PoF)).
 
 -spec txs_hash(micro_block()) -> binary().
 txs_hash(Block) ->

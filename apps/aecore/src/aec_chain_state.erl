@@ -60,12 +60,13 @@ median_timestamp(Header) ->
             end
     end.
 
--spec insert_block(aec_blocks:block() | map()) -> 'ok' | {'error', any()}.
+-spec insert_block(aec_blocks:block() | map()) -> 'ok' | {'ok' | tuple()} | {'error', any()}.
 insert_block(#{ key_block := KeyBlock, micro_blocks := MicroBlocks, dir := forward }) ->
     %% First insert key_block
     case insert_block(KeyBlock) of
         ok ->
             lists:foldl(fun(MB, ok) -> insert_block(MB);
+                           (MB, {ok, _}) -> insert_block(MB);
                            (_MB, Err = {error, _}) -> Err
                         end, ok, MicroBlocks);
         Err = {error, _} ->
@@ -74,6 +75,7 @@ insert_block(#{ key_block := KeyBlock, micro_blocks := MicroBlocks, dir := forwa
 insert_block(#{ key_block := KeyBlock, micro_blocks := MicroBlocks, dir := backward }) ->
     %% First insert micro_blocks
     case lists:foldl(fun(MB, ok) -> insert_block(MB);
+                        (MB, {ok, _}) -> insert_block(MB);
                         (_MB, Err = {error, _}) -> Err
                      end, ok, MicroBlocks) of
         ok ->
@@ -177,9 +179,9 @@ set_top_block_hash(H, State) when is_binary(H) -> State#{top_block_hash => H}.
 %%% Internal ADT for differing between blocks and headers
 %%%-------------------------------------------------------------------
 
--record(node, { header  :: aec_headers:header()
-              , hash    :: binary()
-              , type    :: block_type()
+-record(node, { header           :: aec_headers:header()
+              , hash             :: binary()
+              , type             :: block_type()
               }).
 
 hash(#node{hash = Hash}) -> Hash.
@@ -206,6 +208,9 @@ node_beneficiary(#node{header = H}) -> aec_headers:beneficiary(H).
 node_type(#node{type = T}) -> T.
 
 node_time(#node{header = H}) -> aec_headers:time_in_msecs(H).
+
+node_pof(#node{type = key}) -> no_fraud;
+node_pof(#node{header = H}) -> aec_headers:pof(H).
 
 is_key_block(N) -> node_type(N) =:= key.
 
@@ -239,11 +244,7 @@ node_is_genesis(Node, State) ->
 
 wrap_block(Block) ->
     Header = aec_blocks:to_header(Block),
-    {ok, Hash} = aec_headers:hash_header(Header),
-    #node{ header = Header
-         , hash = Hash
-         , type = aec_blocks:type(Block)
-         }.
+    wrap_header(Header).
 
 fake_key_node(PrevNode, Height, Miner, Beneficiary) ->
     Block = aec_blocks:new_key(Height,
@@ -258,10 +259,11 @@ fake_key_node(PrevNode, Height, Miner, Beneficiary) ->
 
 wrap_header(Header) ->
     {ok, Hash} = aec_headers:hash_header(Header),
-    #node{ header = Header
-         , hash = Hash
-         , type = aec_headers:type(Header)
-         }.
+    BlockType = aec_headers:type(Header),
+    #node{header = Header
+        , hash = Hash
+        , type = BlockType
+    }.
 
 export_header(#node{header = Header}) ->
     Header.
@@ -321,12 +323,19 @@ internal_insert(Node, Block) ->
                           %% Keep track of which node we are actually
                           %% adding to avoid giving spurious error
                           %% messages.
-                          State1 = State#{ currently_adding => hash(Node)},
+                          State1 = State#{fraud_status => no_fraud, currently_adding => hash(Node)},
                           assert_not_new_genesis(Node, State1),
                           ok = db_put_node(Block, hash(Node)),
+                          case node_pof(Node) of
+                              no_fraud -> ok;
+                              _PoF -> db_mark_malicious_leader(Node)
+                          end,
                           State2 = update_state_tree(Node, maybe_add_genesis_hash(State1, Node)),
                           persist_state(State2),
-                          ok
+                          case maps:get(fraud_status, State2) of
+                              no_fraud     -> ok;
+                              FraudHeaders -> {ok, FraudHeaders}
+                          end
                   end,
             try aec_db:ensure_transaction(Fun)
             catch exit:{aborted, {throw, ?internal_error(What)}} -> internal_error(What)
@@ -458,10 +467,8 @@ assert_micro_signature(PrevNode, Node, KeyHash) ->
                     key   -> {ok, PrevNode};
                     micro -> db_find_node(KeyHash)
                 end,
-            Bin = aec_headers:serialize_to_signature_binary(export_header(Node)),
-            Sig = node_signature(Node),
-            case enacl:sign_verify_detached(Sig, Bin, node_miner(KeyNode)) of
-                {ok, _}    -> ok;
+            case aeu_sig:verify(export_header(Node), node_miner(KeyNode)) of
+                ok         -> ok;
                 {error, _} -> internal_error(signature_verification_failed)
             end;
         false ->
@@ -479,26 +486,37 @@ assert_micro_signature(PrevNode, Node, KeyHash) ->
                    , difficulty
                    , fees
                    , latest_key_hash
+                   , fraud
                    }).
 
 update_state_tree(Node, State) ->
     case get_state_trees_in(Node, State) of
         error -> State;
         {ok, Trees, ForkInfoIn} ->
-            ForkInfo =
+            {ForkInfo, MicSibHeaders} =
                 case node_is_genesis(Node, State) of
-                    true  -> ForkInfoIn;
+                    true  -> {ForkInfoIn, []};
                     false ->
-                        case db_node_has_sibling_blocks(Node) of
-                            true  -> ForkInfoIn#fork_info{fork_id = hash(Node)};
-                            false -> ForkInfoIn
+                        #{key_sibling := KeySib,
+                          micro_sibling := MicSib} = db_sibling_blocks(Node),
+                        case KeySib ++ MicSib of
+                            Headers when length(Headers) > 1 -> {ForkInfoIn#fork_info{fork_id = hash(Node)}, MicSib};
+                            Headers -> {ForkInfoIn, MicSib}
                         end
                 end,
-            {State1, NewTopDifficulty} =
-                update_state_tree(Node, Trees, ForkInfo, State),
+            State1 = check_for_fraud(Node, MicSibHeaders, State),
+            {State2, NewTopDifficulty} =
+                update_state_tree(Node, Trees, ForkInfo, State1),
             OldTopHash = get_top_block_hash(State),
-            handle_top_block_change(OldTopHash, NewTopDifficulty, State1)
+            handle_top_block_change(OldTopHash, NewTopDifficulty, State2)
     end.
+
+check_for_fraud(Node, Headers, State) ->
+    FraudStatus = case {node_type(Node), Headers} of
+                      {micro, [Header, FraudHeader | _]} -> {Header, FraudHeader};
+                      {_, _} -> no_fraud
+                  end,
+    State#{fraud_status := FraudStatus}.
 
 update_state_tree(Node, TreesIn, ForkInfo, State) ->
     case db_find_state(hash(Node)) of
@@ -710,19 +728,31 @@ find_prev_key_nodes({ok, Node}, N, Acc) ->
 
 grant_fees(Node, Trees, Delay, Fees, State) ->
     {KeyNode1, KeyNode2} = find_prev_key_nodes(Node, Delay + 1),
-    KeyFees = case Node =:= KeyNode2 of
-                  true  -> Fees;
-                  false -> db_get_fees(hash(KeyNode2))
-              end,
+    {KeyFees, FraudStatus1, FraudStatus2} = case Node =:= KeyNode2 of
+                                                true  -> {Fees,
+                                                          db_get_fraud_status(hash(KeyNode1)),
+                                                          false};
+                                                false -> {db_get_fees(hash(KeyNode2)),
+                                                          db_get_fraud_status(hash(KeyNode1)),
+                                                          db_get_fraud_status(hash(KeyNode2))}
+                                            end,
+
     Beneficiary1 = node_beneficiary(KeyNode1),
     Beneficiary2 = node_beneficiary(KeyNode2),
     Reward = aec_governance:block_mine_reward(),
+    FraudReward = aec_governance:fraud_report_reward(),
     BeneficiaryReward1 = round(KeyFees * 0.4),
     BeneficiaryReward2 = KeyFees - BeneficiaryReward1 + Reward,
-    Trees1 = aec_trees:grant_fee(Beneficiary2, Trees, BeneficiaryReward2),
-    case node_is_genesis(KeyNode1, State) of
-        true  -> Trees1;
-        false -> aec_trees:grant_fee(Beneficiary1, Trees1, BeneficiaryReward1)
+
+    Trees1 = case {FraudStatus1, FraudStatus2} of
+                 {false, false} -> aec_trees:grant_fee(Beneficiary2, Trees, BeneficiaryReward2);
+                 {true, false} -> aec_trees:grant_fee(Beneficiary2, Trees, BeneficiaryReward2 + FraudReward);
+                 {_, true} -> Trees
+             end,
+
+    case {FraudStatus1, node_is_genesis(KeyNode1, State)} of
+        {false, false} -> aec_trees:grant_fee(Beneficiary1, Trees1, BeneficiaryReward1);
+        {_, _} -> Trees1
     end.
 
 calculate_gas_fee(Calls) ->
@@ -810,7 +840,6 @@ median(Xs) ->
 db_put_node(Block, Hash) when is_binary(Hash) ->
     ok = aec_db:write_block(Block).
 
-%% NG-INFO Heigh/Hash queries have sense in context of key blocks. For non-key height = 0
 db_find_node(Hash) when is_binary(Hash) ->
     case aec_db:find_header(Hash) of
         {value, Header} -> {ok, wrap_header(Header)};
@@ -821,7 +850,6 @@ db_get_node(Hash) when is_binary(Hash) ->
     {ok, Node} = db_find_node(Hash),
     Node.
 
-%% NG-INFO Heigh/Hash queries have sense in context of key blocks. For non-key height = 0
 db_find_nodes_at_height(Height) when is_integer(Height) ->
     case aec_db:find_headers_at_height(Height) of
         [_|_] = Headers ->
@@ -834,8 +862,9 @@ db_put_state(Hash, Trees, ForkInfo) when is_binary(Hash) ->
               , fork_id         = ForkId
               , fees            = Fees
               , latest_key_hash = KeyHash
+              , fraud           = Fraud
               } = ForkInfo,
-    ok = aec_db:write_block_state(Hash, Trees, Difficulty, ForkId, Fees, KeyHash).
+    ok = aec_db:write_block_state(Hash, Trees, Difficulty, ForkId, Fees, KeyHash, Fraud).
 
 db_find_state(Hash) ->
     case aec_db:find_block_state_and_data(Hash) of
@@ -873,6 +902,10 @@ db_get_key_hash(Hash) when is_binary(Hash) ->
     {value, KeyHash} = aec_db:find_block_key_hash(Hash),
     KeyHash.
 
+db_get_fraud_status(Hash) when is_binary(Hash) ->
+    {value, FraudStatus} = aec_db:find_block_fraud_status(Hash),
+    FraudStatus.
+
 db_safe_get_tx_hashes(Hash) when is_binary(Hash) ->
     case aec_db:find_block_tx_hashes(Hash) of
         none -> [];
@@ -898,18 +931,36 @@ db_children(#node{} = Node) ->
             ++ aec_db:find_headers_at_height(Height),
         aec_headers:prev_hash(Header) =:= Hash].
 
-db_node_has_sibling_blocks(Node) ->
+db_sibling_blocks(#node{type = key} = Node) ->
     Height   = node_height(Node),
     PrevHash = prev_hash(Node),
-    %% NOTE: Micro blocks have the same height.
-    %% For key blocks siblings at Height and Height - 1
-    %% and for micro blocks siblings at Height and Height + 1
-    OtherHeight =
-        case node_type(Node) of
-            micro -> Height + 1;
-            key   -> Height - 1
-        end,
-    length([x || Header <- aec_db:find_headers_at_height(Height)
-                           ++ aec_db:find_headers_at_height(OtherHeight),
-                 aec_headers:prev_hash(Header) =:= PrevHash]) > 1.
+    #{ key_sibling => match_prev_at_height(Height, PrevHash),
+       micro_sibling => match_prev_at_height(Height-1, PrevHash)};
+db_sibling_blocks(#node{type = micro} = Node) ->
+    Height   = node_height(Node),
+    PrevHash = prev_hash(Node),
+    #{ key_sibling => match_prev_at_height(Height+1, PrevHash),
+       micro_sibling => match_prev_at_height(Height, PrevHash)}.
+
+match_prev_at_height(Height, PrevHash) ->
+    [Header || Header <- aec_db:find_headers_at_height(Height),
+               aec_headers:prev_hash(Header) =:= PrevHash].
+
+db_mark_malicious_leader(#node{header = Header}) ->
+    CurrentHeight = aec_headers:height(Header),
+    {ok, MaliciousKeyBlock} = aec_chain:get_key_block_by_height(CurrentHeight-1),
+    MaliciousHeader = aec_blocks:to_header(MaliciousKeyBlock),
+    {ok, MaliciousHash} = aec_headers:hash_header(MaliciousHeader),
+
+    case aec_db:find_block_state_and_data(MaliciousHash) of
+        {value, Trees, Difficulty, ForkId, Fees, KeyHash, _} ->
+            ForkInfo = #fork_info{ difficulty      = Difficulty
+                                 , fork_id               = ForkId
+                                 , fees                  = Fees
+                                 , latest_key_hash       = KeyHash
+                                 , fraud                 = true
+                                 },
+            db_put_state(MaliciousHash, Trees, ForkInfo);
+        none -> error({missing_prev_prev_keyblock_in_db, MaliciousHash})
+    end.
 

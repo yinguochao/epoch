@@ -18,7 +18,8 @@
          name_claim_preclaim_delta/0,
          name_registrars/0,
          micro_block_cycle/0,
-         accepted_future_block_time_shift/0]).
+         accepted_future_block_time_shift/0,
+         fraud_report_reward/0]).
 
 -export_type([protocols/0]).
 
@@ -114,3 +115,6 @@ name_claim_preclaim_delta() ->
 
 name_registrars() ->
     [<<"aet">>, <<"test">>].
+
+fraud_report_reward() ->
+    0.01*block_mine_reward().

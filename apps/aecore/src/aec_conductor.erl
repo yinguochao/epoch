@@ -722,7 +722,8 @@ start_micro_signing(#state{consensus = #consensus{leader = true},
     %% Regenerate the candidate.
     State#state{micro_block_candidate = undefined};
 start_micro_signing(#state{consensus = #consensus{leader = true},
-                           micro_block_candidate = #candidate{block = MicroBlock}} = State) ->
+                           micro_block_candidate = #candidate{block = MicroBlock},
+                           pof = PoF} = State) ->
     case is_tag_blocked(micro_sleep, State) of
         true ->
             epoch_mining:debug("Too early to sign micro block, wait a bit longer"),
@@ -730,11 +731,12 @@ start_micro_signing(#state{consensus = #consensus{leader = true},
         false ->
             epoch_mining:info("Signing microblock"),
             AdjMicroBlock = aec_blocks:set_time_in_msecs(MicroBlock, aeu_time:now_in_msecs()),
-            {ok, SignedMicroBlock} = aec_keys:sign_micro_block(AdjMicroBlock),
+            AddPoFToBlock = aec_blocks:set_pof(AdjMicroBlock, aec_pof:new(PoF)),
+            {ok, SignedMicroBlock} = aec_keys:sign_micro_block(AddPoFToBlock),
             State1 = State#state{micro_block_candidate = undefined},
             case handle_signed_block(SignedMicroBlock, State1) of
                 {ok, State2} ->
-                    State2;
+                    State2#state{pof = no_fraud};
                 {{error, Reason}, State2} ->
                     epoch_mining:error("Block insertion failed: ~p.", [Reason]),
                     start_micro_signing(State2)
@@ -854,14 +856,27 @@ handle_add_block(Header, CheckFun, Block, State, Origin) ->
                             maybe_publish_block(Origin, Block),
                             case preempt_if_new_top(State, Origin) of
                                 no_change ->
-                                    {ok, State};
+                                    {ok, State#state{pof = no_fraud}};
                                 {micro_changed, State1 = #state{ consensus = Cons }} ->
-                                    {ok, setup_loop(State1, false, Cons#consensus.leader, Origin)};
+                                    {ok, setup_loop(State1#state{pof = no_fraud}, false, Cons#consensus.leader, Origin)};
                                 {changed, NewTopBlock, State1} ->
                                     IsLeader = is_leader(NewTopBlock),
                                     %% Don't spend time when we are the leader.
                                     [ aec_tx_pool:garbage_collect() || not IsLeader ],
-                                    {ok, setup_loop(State1, true, IsLeader, Origin)}
+                                    {ok, setup_loop(State1#state{pof = no_fraud}, true, IsLeader, Origin)}
+                            end;
+                        {ok, PoF} ->
+                            maybe_publish_block(Origin, Block),
+                            case preempt_if_new_top(State, Origin) of
+                                no_change ->
+                                    {ok, State#state{pof = PoF}};
+                                {micro_changed, State1 = #state{ consensus = Cons }} ->
+                                    {ok, setup_loop(State1#state{pof = PoF}, false, Cons#consensus.leader, Origin)};
+                                {changed, NewTopBlock, State1} ->
+                                    IsLeader = is_leader(NewTopBlock),
+                                    %% Don't spend time when we are the leader.
+                                    [ aec_tx_pool:garbage_collect() || not IsLeader ],
+                                    {ok, setup_loop(State1#state{pof = PoF}, true, IsLeader, Origin)}
                             end;
                         {error, Reason} ->
                             lager:error("Couldn't insert block (~p)", [Reason]),

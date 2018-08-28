@@ -3,6 +3,82 @@
 %%% @copyright (C) 2017, Aeternity Anstalt
 %%% @doc
 %%% ADT for keeping the state of the chain service
+%%%
+%%% This module is responsible for tracking the structure of the
+%%% chain. The building blocks of the chain is abstracted to Nodes. A
+%%% node is either a key block or a micro block.
+%%%
+%%% The chain starts with the genesis block and ends with the top_block.
+%%%
+%%% A node is added to the db if it passes basic validation, but it is
+%%% not added to the chain unless full validation passes. The full
+%%% validation of a node can only be done if the full validation of
+%%% its immediate predecessor (prev_hash) has passed. By transitivity,
+%%% a node can only be validated if it has a fully validated chain to
+%%% the genesis node.
+%%%
+%%% When a node has been validated and added to the chain, the next
+%%% nodes (if available) are validated transitively forward in the
+%%% chain structure. This ensures that we only need to check for the
+%%% state of the predecessor to know whether the new node can be
+%%% validated.
+%%%
+%%% When the transitive validation is done, one or several new top
+%%% nodes can be identified. The accumulated difficulty of the new
+%%% tops are compared to the old top difficulty, and it is determined
+%%% which top should be considered the top of the main chain.
+%%%
+%%% This might result in a fork switch, or (in the normal case) an
+%%% extension of the old chain. This can be determined by finding if
+%%% the old top is an ancestor of the new top.
+%%%
+%%% Forks in the structure are labeled by fork id. The fork id is
+%%% local to each epoch instance and cannot be used to reason about
+%%% structure across peers. The fork id is the hash of the first node
+%%% in a fork in the local system. In particular, the genesis node's
+%%% hash is the first fork id. A node inherits its parents fork id,
+%%% unless there is already a sibling that has already inerited the
+%%% fork id. In that case, a new fork id is created with the hash of
+%%% the new node.
+%%%
+%%% Fork ids help reasoning about the chain structure since they allow
+%%% for skipping to the beginning of a fork when traversing the
+%%% chain. For example, if two nodes with the same fork id, one must
+%%% be the ancestor of the other. If this is not the case, we can skip
+%%% to the previous fork of the higher node and compare again.
+%%%
+%%% Information is accumulated in the chain and is stored
+%%% corresponding to a node. For example, the accumulated difficulty,
+%%% the fork id, the accumulated fee for a generations (between two
+%%% key blocks), the full state trees at a node. Currently, this
+%%% information is not garbage collected in any way, and it is
+%%% indefinitely retrievable. This might change in the future.
+%%%
+%%% TODO: What is described below is not yet implemented.
+%%%
+%%% An orphan node is a node that is not connected to genesis. Because
+%%% of this, it is not possible to fully validate an orphan node. In
+%%% order to prevent filling up the database with maliciously created
+%%% blocks (a DoS attack), we allow for only some orphan nodes to be
+%%% added:
+%%%
+%%% * A key block is added iff it is connected to genesis.
+%%% * A micro block is added if:
+%%%   - it is connected to genesis, or
+%%%   - an existing key block (of the same height) can validate its
+%%%     signature.
+%%%
+%%% Note that an added orphan node might still fail validation at a
+%%% later stage. The node will remain in the db, but it will not get a
+%%% stored state.
+%%%
+%%% When adding a node, we make a difference if the node was added
+%%% through gossip or sync. A gossiped node is not allowed to be
+%%% further below the current top than some height delta. This to
+%%% prevent malicious nodes from creating ancient forks. Sync is
+%%% making a slightly more informed decision when creating forks, so
+%%% it is allowed to create older forks.
+%%%
 %%% @end
 %%%-------------------------------------------------------------------
 

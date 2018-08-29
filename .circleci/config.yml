@@ -498,7 +498,7 @@ jobs:
           name: System Tests
           no_output_timeout: 2h
           command: |
-            sudo -u ubuntu -E -H make system-test
+            sudo -u ubuntu -E -H make smoke-test-run
       - *fail_notification_system_test
       - store_test_results:
           path: system_test/logs

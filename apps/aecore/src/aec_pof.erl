@@ -78,7 +78,7 @@ check(MicroHeader) ->
     Parent = aec_chain:get_block(Prev),
 
     Checks =
-        [fun() -> check_siblings(MicroHeader) end,
+        [fun() -> check_siblings(PoF) end,
          fun() -> check_if_first_microblock(Parent) end,
          fun() -> check_fraud_signatures(PoF, Height) end],
 

@@ -21,8 +21,7 @@
          fraud_header/1]).
 
 %% Validators
--export([check/2]).
-
+-export([check/1]).
 
 -define(POF_VSN, 1).
 
@@ -71,9 +70,9 @@ fraud_header(#{fraud_header := FraudHeader}) ->
 %%% Validation
 %%%===================================================================
 
-check(MicroHeader, _Version) ->
-    PoF = aec_headers:pof(MicroHeader),
-    Prev = aec_headers:prev_hash(MicroHeader),
+check(MicroHeader) ->
+    PoF    = aec_headers:pof(MicroHeader),
+    Prev   = aec_headers:prev_hash(MicroHeader),
     Height = aec_headers:height(MicroHeader),
 
     Parent = aec_chain:get_block(Prev),
@@ -95,7 +94,7 @@ check_siblings(#{header := Header1, fraud_header := Header2}) ->
     Prev2 = aec_headers:prev_hash(Header2),
 
     if (Height1 =:= Height2) and (Prev1 =:= Prev2) -> ok;
-        true -> {error, not_siblings}
+       true -> {error, not_siblings}
     end.
 
 check_if_first_microblock(PrevBlock) ->

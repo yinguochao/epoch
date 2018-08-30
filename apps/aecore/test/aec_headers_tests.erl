@@ -159,6 +159,7 @@ validate_test_() ->
       fun() ->
               Header = ?TEST_MODULE:set_version_and_height(
                            raw_micro_header(), ?GENESIS_VERSION, ?GENESIS_HEIGHT),
+              meck:expect(aec_chain, get_block, 1, {ok, Header}),
               ?assertEqual(ok, ?TEST_MODULE:validate_micro_block_header(Header))
       end,
       fun() ->

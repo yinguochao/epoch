@@ -653,5 +653,5 @@ validate_max_time({Header, _}) ->
             {error, block_from_the_future}
     end.
 
-validate_pof({Header, Ver}) ->
-    aec_pof:check(Header, Ver).
+validate_pof({Header, _}) ->
+    aec_pof:check(Header).

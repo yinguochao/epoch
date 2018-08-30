@@ -34,6 +34,7 @@
 -define(TIMESTAMP_MEDIAN_BLOCKS, 11).
 -define(EXPECTED_BLOCK_MINE_RATE, 3 * 60 * 1000). %% 60secs * 1000ms * 3 = 180000msecs
 -define(BLOCK_MINE_REWARD, 10000000000000000000).
+-define(POF_REWARD       , 10000000000000000). %% ?BLOCK_MINE_REWARD / 1000
 -define(BENEFICIARY_REWARD_DELAY, 180). %% in key blocks / generations
 -define(MICRO_BLOCK_CYCLE, 3000). %% in msecs
 
@@ -117,4 +118,4 @@ name_registrars() ->
     [<<"aet">>, <<"test">>].
 
 fraud_report_reward() ->
-    0.01*block_mine_reward().
+    ?POF_REWARD.

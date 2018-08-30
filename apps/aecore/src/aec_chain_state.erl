@@ -179,9 +179,9 @@ set_top_block_hash(H, State) when is_binary(H) -> State#{top_block_hash => H}.
 %%% Internal ADT for differing between blocks and headers
 %%%-------------------------------------------------------------------
 
--record(node, { header           :: aec_headers:header()
-              , hash             :: binary()
-              , type             :: block_type()
+-record(node, { header :: aec_headers:header()
+              , hash   :: binary()
+              , type   :: block_type()
               }).
 
 hash(#node{hash = Hash}) -> Hash.
@@ -198,8 +198,6 @@ node_difficulty(#node{header = H}) -> aec_headers:difficulty(H).
 node_target(#node{header = H}) -> aec_headers:target(H).
 
 node_root_hash(#node{header = H}) -> aec_headers:root_hash(H).
-
-node_signature(#node{header = H}) -> aec_headers:signature(H).
 
 node_miner(#node{header = H}) -> aec_headers:miner(H).
 
@@ -259,11 +257,10 @@ fake_key_node(PrevNode, Height, Miner, Beneficiary) ->
 
 wrap_header(Header) ->
     {ok, Hash} = aec_headers:hash_header(Header),
-    BlockType = aec_headers:type(Header),
-    #node{header = Header
-        , hash = Hash
-        , type = BlockType
-    }.
+    #node{ header = Header
+         , hash = Hash
+         , type = aec_headers:type(Header)
+         }.
 
 export_header(#node{header = Header}) ->
     Header.

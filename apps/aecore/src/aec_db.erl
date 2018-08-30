@@ -409,8 +409,8 @@ find_block_state_and_data(Hash) ->
     case ?t(mnesia:read(aec_block_state, Hash)) of
         [#aec_block_state{value = Trees, difficulty = D,
                           fork_id = FId, fees = Fees,
-                          key_hash = KH}] ->
-            {value, aec_trees:deserialize_from_db(Trees), D, FId, Fees, KH};
+                          key_hash = KH, fraud = Fraud}] ->
+            {value, aec_trees:deserialize_from_db(Trees), D, FId, Fees, KH, Fraud};
         [] -> none
     end.
 

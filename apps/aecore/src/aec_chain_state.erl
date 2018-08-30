@@ -38,7 +38,7 @@ get_key_block_hash_at_height(Height) when is_integer(Height), Height >= 0 ->
     get_key_block_hash_at_height(Height, new_state_from_persistence()).
 
 -spec get_n_key_headers_backward_from(aec_headers:header(), non_neg_integer()) ->
-        {ok, [aec_headers:header()]} | 'error'.
+                                             {ok, [aec_headers:header()]} | 'error'.
 get_n_key_headers_backward_from(Header, N) ->
     Node = wrap_header(Header),
     get_n_key_headers_from(Node, N).
@@ -123,7 +123,7 @@ hash_is_in_main_chain(Hash) ->
 
 -spec calculate_state_for_new_keyblock(binary(), aec_keys:pubkey(), aec_keys:pubkey()) ->
                                               {'ok', aec_trees:trees()}
-                                            | 'error'.
+                                                  | 'error'.
 
 calculate_state_for_new_keyblock(PrevHash, Miner, Beneficiary) ->
     case db_find_node(PrevHash) of
@@ -180,8 +180,8 @@ set_top_block_hash(H, State) when is_binary(H) -> State#{top_block_hash => H}.
 %%%-------------------------------------------------------------------
 
 -record(node, { header :: aec_headers:header()
-              , hash   :: binary()
-              , type   :: block_type()
+                          , hash   :: binary()
+                                      , type   :: block_type()
               }).
 
 hash(#node{hash = Hash}) -> Hash.
@@ -417,7 +417,7 @@ get_n_key_headers_from({ok, Node}, N, Acc) ->
                 PrevKeyNode = db_find_node(db_get_key_hash(hash(Node))),
                 get_n_key_headers_from(PrevKeyNode, N, Acc)
             catch _:_ ->
-                error
+                    error
             end
     end;
 get_n_key_headers_from(error, _N, _Acc) ->
@@ -566,6 +566,7 @@ get_state_trees_in(Node, State) ->
                        , fork_id = hash(Node)
                        , fees = 0
                        , latest_key_hash = aec_db:get_genesis_hash()
+                       , fraud = false
                        }
             };
         false ->
@@ -742,9 +743,9 @@ grant_fees(Node, Trees, Delay, Fees, State) ->
     BeneficiaryReward2 = KeyFees - BeneficiaryReward1 + Reward,
 
     Trees1 = case {FraudStatus1, FraudStatus2} of
-                 {false, false} -> aec_trees:grant_fee(Beneficiary2, Trees, BeneficiaryReward2);
-                 {true, false} -> aec_trees:grant_fee(Beneficiary2, Trees, BeneficiaryReward2 + FraudReward);
-                 {_, true} -> Trees
+                 {false , false} -> aec_trees:grant_fee(Beneficiary2, Trees, BeneficiaryReward2);
+                 {true  , false} -> aec_trees:grant_fee(Beneficiary2, Trees, BeneficiaryReward2 + FraudReward);
+                 {_     , true} -> Trees
              end,
 
     case {FraudStatus1, node_is_genesis(KeyNode1, State)} of
@@ -865,12 +866,13 @@ db_put_state(Hash, Trees, ForkInfo) when is_binary(Hash) ->
 
 db_find_state(Hash) ->
     case aec_db:find_block_state_and_data(Hash) of
-        {value, Trees, Difficulty, ForkId, Fees, KeyHash} ->
+        {value, Trees, Difficulty, ForkId, Fees, KeyHash, Fraud} ->
             {ok, Trees,
              #fork_info{ difficulty = Difficulty
                        , fork_id = ForkId
                        , fees = Fees
                        , latest_key_hash = KeyHash
+                       , fraud = Fraud
                        }
             };
         none -> error
@@ -943,21 +945,18 @@ match_prev_at_height(Height, PrevHash) ->
     [Header || Header <- aec_db:find_headers_at_height(Height),
                aec_headers:prev_hash(Header) =:= PrevHash].
 
-db_mark_malicious_leader(#node{header = Header}) ->
-    CurrentHeight = aec_headers:height(Header),
-    {ok, MaliciousKeyBlock} = aec_chain:get_key_block_by_height(CurrentHeight-1),
-    MaliciousHeader = aec_blocks:to_header(MaliciousKeyBlock),
-    {ok, MaliciousHash} = aec_headers:hash_header(MaliciousHeader),
+db_mark_malicious_leader(Node) ->
+    Height = node_height(Node),
+    {ok, MaliciousKeyBlock} = aec_chain:get_key_block_by_height(Height - 1),
+    MaliciousHeader         = aec_blocks:to_header(MaliciousKeyBlock),
+    {ok, MaliciousHash}     = aec_headers:hash_header(MaliciousHeader),
 
-    case aec_db:find_block_state_and_data(MaliciousHash) of
-        {value, Trees, Difficulty, ForkId, Fees, KeyHash, _} ->
-            ForkInfo = #fork_info{ difficulty      = Difficulty
-                                 , fork_id               = ForkId
-                                 , fees                  = Fees
-                                 , latest_key_hash       = KeyHash
-                                 , fraud                 = true
-                                 },
-            db_put_state(MaliciousHash, Trees, ForkInfo);
-        none -> error({missing_prev_prev_keyblock_in_db, MaliciousHash})
-    end.
-
+    {value, Trees, Difficulty, ForkId, Fees, KeyHash, _Fraud}
+        = aec_db:find_block_state_and_data(MaliciousHash),
+    ForkInfo = #fork_info{ difficulty      = Difficulty
+                         , fork_id         = ForkId
+                         , fees            = Fees
+                         , latest_key_hash = KeyHash
+                         , fraud           = true
+                         },
+    db_put_state(MaliciousHash, Trees, ForkInfo).

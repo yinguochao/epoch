@@ -26,6 +26,7 @@
 %% Mimicking the aec_persistence API used by aec_conductor_chain
 -export([has_block/1,
          write_block/1,
+         write_block/2,
          write_block_state/6,
          write_genesis_hash/1,
          write_top_block_hash/1,
@@ -34,6 +35,7 @@
          find_block_tx_hashes/1,
          find_header/1,
          find_headers_at_height/1,
+         find_headers_and_hash_at_height/1,
          find_key_block/1,
          find_signed_tx/1,
          get_block/1,
@@ -199,8 +201,12 @@ delete(Tab, Key) ->
 
 write_block(Block) ->
     Header = aec_blocks:to_header(Block),
-    Height = aec_headers:height(Header),
     {ok, Hash} = aec_headers:hash_header(Header),
+    write_block(Block, Hash).
+
+write_block(Block, Hash) ->
+    Header = aec_blocks:to_header(Block),
+    Height = aec_headers:height(Header),
     case aec_blocks:type(Block) of
         key ->
             ?t(mnesia:write(#aec_headers{key = Hash,
@@ -303,6 +309,12 @@ find_header(Hash) ->
 -spec find_headers_at_height(pos_integer()) -> [aec_headers:header()].
 find_headers_at_height(Height) when is_integer(Height), Height >= 0 ->
     ?t([H || #aec_headers{value = H}
+                 <- mnesia:index_read(aec_headers, Height, height)]).
+
+-spec find_headers_and_hash_at_height(pos_integer()) ->
+                                             [{aec_headers:header(), binary()}].
+find_headers_and_hash_at_height(Height) when is_integer(Height), Height >= 0 ->
+    ?t([{H, K} || #aec_headers{key = K, value = H}
                  <- mnesia:index_read(aec_headers, Height, height)]).
 
 write_block_state(Hash, Trees, AccDifficulty, ForkId, Fees, KeyHash) ->

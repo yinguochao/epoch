@@ -334,6 +334,9 @@ fake_key_node(PrevNode, Height, Miner, Beneficiary) ->
 
 wrap_header(Header) ->
     {ok, Hash} = aec_headers:hash_header(Header),
+    wrap_header(Header, Hash).
+
+wrap_header(Header, Hash) ->
     #node{ header = Header
          , hash = Hash
          , type = aec_headers:type(Header)
@@ -355,7 +358,7 @@ get_key_block_hash_at_height(Height, State) when is_integer(Height), Height >= 0
             case Height > TopHeight of
                 true  -> error;
                 false ->
-                    case db_find_nodes_at_height(Height) of
+                    case db_find_key_nodes_at_height(Height) of
                         error -> error({broken_chain, Height});
                         {ok, [Node]} -> {ok, hash(Node)};
                         {ok, [_|_] = Nodes} ->
@@ -364,10 +367,8 @@ get_key_block_hash_at_height(Height, State) when is_integer(Height), Height >= 0
             end
     end.
 
-%% TODO: this function relies that both key blocks and micro blocks share the
-%% same index; this can change when they are indexed separately
 keyblock_hash_in_main_chain([Node|Left], TopHash) ->
-    case is_key_block(Node) andalso hash_is_in_main_chain(hash(Node), TopHash) of
+    case hash_is_in_main_chain(hash(Node), TopHash) of
         true  -> {ok, hash(Node)};
         false -> keyblock_hash_in_main_chain(Left, TopHash)
     end;
@@ -884,12 +885,11 @@ median(Xs) ->
 %%%-------------------------------------------------------------------
 
 db_put_node(Block, Hash) when is_binary(Hash) ->
-    ok = aec_db:write_block(Block).
+    ok = aec_db:write_block(Block, Hash).
 
-%% NG-INFO Heigh/Hash queries have sense in context of key blocks. For non-key height = 0
 db_find_node(Hash) when is_binary(Hash) ->
     case aec_db:find_header(Hash) of
-        {value, Header} -> {ok, wrap_header(Header)};
+        {value, Header} -> {ok, wrap_header(Header, Hash)};
         none -> error
     end.
 
@@ -897,11 +897,13 @@ db_get_node(Hash) when is_binary(Hash) ->
     {ok, Node} = db_find_node(Hash),
     Node.
 
-%% NG-INFO Heigh/Hash queries have sense in context of key blocks. For non-key height = 0
-db_find_nodes_at_height(Height) when is_integer(Height) ->
-    case aec_db:find_headers_at_height(Height) of
+db_find_key_nodes_at_height(Height) when is_integer(Height) ->
+    case aec_db:find_headers_and_hash_at_height(Height) of
         [_|_] = Headers ->
-            {ok, lists:map(fun(Header) -> wrap_header(Header) end, Headers)};
+            case [wrap_header(H, Hash) || {H, Hash} <- Headers, aec_headers:type(H) =:= key] of
+                [] -> error;
+                List -> {ok, List}
+            end;
         [] -> error
     end.
 
@@ -969,9 +971,9 @@ db_children(#node{} = Node) ->
     Height = node_height(Node),
     Hash   = hash(Node),
     %% NOTE: Micro blocks have the same height.
-    [wrap_header(Header)
-     || Header <- aec_db:find_headers_at_height(Height + 1)
-            ++ aec_db:find_headers_at_height(Height),
+    [wrap_header(Header, H)
+     || {Header, H} <- aec_db:find_headers_and_hash_at_height(Height + 1)
+            ++ aec_db:find_headers_and_hash_at_height(Height),
         aec_headers:prev_hash(Header) =:= Hash].
 
 db_node_has_sibling_blocks(Node) ->

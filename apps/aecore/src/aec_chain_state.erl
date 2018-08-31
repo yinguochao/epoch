@@ -611,7 +611,7 @@ update_next_state_tree_children([],_Trees, Max, State) ->
     {State, Max};
 update_next_state_tree_children([{Child, ForkInfo}|Left], Trees, Max, State) ->
     {State1, Max1} = update_state_tree(Child, Trees, ForkInfo, State),
-    case Max1 > Max of
+    case Max1 >= Max of
         true ->
             update_next_state_tree_children(Left, Trees, Max1, State1);
         false ->

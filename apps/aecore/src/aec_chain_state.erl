@@ -54,8 +54,6 @@
 %%% information is not garbage collected in any way, and it is
 %%% indefinitely retrievable. This might change in the future.
 %%%
-%%% TODO: What is described below is not yet implemented.
-%%%
 %%% An orphan node is a node that is not connected to genesis. Because
 %%% of this, it is not possible to fully validate an orphan node. In
 %%% order to prevent filling up the database with maliciously created
@@ -141,7 +139,7 @@ insert_block(#{ key_block := KeyBlock, micro_blocks := MicroBlocks, dir := forwa
     %% First insert key_block
     case insert_block(KeyBlock) of
         ok ->
-            lists:foldl(fun(MB, ok) -> insert_block(MB);
+            lists:foldl(fun(MB, ok) -> insert_block(MB, sync);
                            (_MB, Err = {error, _}) -> Err
                         end, ok, MicroBlocks);
         Err = {error, _} ->
@@ -149,7 +147,7 @@ insert_block(#{ key_block := KeyBlock, micro_blocks := MicroBlocks, dir := forwa
     end;
 insert_block(#{ key_block := KeyBlock, micro_blocks := MicroBlocks, dir := backward }) ->
     %% First insert micro_blocks
-    case lists:foldl(fun(MB, ok) -> insert_block(MB);
+    case lists:foldl(fun(MB, ok) -> insert_block(MB, sync);
                         (_MB, Err = {error, _}) -> Err
                      end, ok, MicroBlocks) of
         ok ->
@@ -158,8 +156,11 @@ insert_block(#{ key_block := KeyBlock, micro_blocks := MicroBlocks, dir := backw
             Err
     end;
 insert_block(Block) ->
+    insert_block(Block, undefined).
+
+insert_block(Block, Origin) ->
     Node = wrap_block(Block),
-    try internal_insert(Node, Block)
+    try internal_insert(Node, Block, Origin)
     catch throw:?internal_error(What) -> {error, What}
     end.
 
@@ -386,7 +387,7 @@ hash_is_in_main_chain(Hash, TopHash) ->
 %%% Chain operations
 %%%-------------------------------------------------------------------
 
-internal_insert(Node, Block) ->
+internal_insert(Node, Block, Origin) ->
     case db_find_node(hash(Node)) of
         error ->
             %% To preserve the invariants of the chain,
@@ -400,9 +401,11 @@ internal_insert(Node, Block) ->
                           %% messages.
                           State1 = State#{ currently_adding => hash(Node)},
                           assert_not_new_genesis(Node, State1),
+                          State2 = maybe_add_genesis_hash(State1, Node),
+                          assert_not_illegal_fork_or_orphan(Node, Origin, State2),
                           ok = db_put_node(Block, hash(Node)),
-                          State2 = update_state_tree(Node, maybe_add_genesis_hash(State1, Node)),
-                          persist_state(State2),
+                          State3 = update_state_tree(Node, State2),
+                          persist_state(State3),
                           ok
                   end,
             try aec_db:ensure_transaction(Fun)
@@ -411,6 +414,64 @@ internal_insert(Node, Block) ->
         {ok, Node} -> ok;
         {ok, Old} -> internal_error({same_key_different_content, Node, Old})
     end.
+
+
+assert_not_illegal_fork_or_orphan(Node, sync, State) ->
+    case node_is_genesis(Node, State) of
+        true -> ok;
+        false ->
+            PrevHash = prev_hash(Node),
+            case hash_is_connected_to_genesis(PrevHash) of
+                true  -> ok;
+                false -> internal_error({illegal_orphan, sync, hash(Node)})
+            end
+    end;
+assert_not_illegal_fork_or_orphan(Node, undefined, State) ->
+    case node_is_genesis(Node, State) of
+        true -> ok;
+        false ->
+            assert_height_delta(Node, State),
+            assert_connection_to_chain(Node, node_type(Node))
+    end.
+
+assert_connection_to_chain(Node, key) ->
+    case hash_is_connected_to_genesis(prev_hash(Node)) of
+        true  -> ok;
+        false -> internal_error({illegal_orphan, hash(Node)})
+    end;
+assert_connection_to_chain(Node, micro) ->
+    case hash_is_connected_to_genesis(prev_hash(Node)) of
+        true  -> ok;
+        false ->
+            %% Only allow orphans if there is a key block with
+            %% matching signatures.
+            case db_find_key_nodes_at_height(node_height(Node)) of
+                error -> internal_error({illegal_orphan, hash(Node)});
+                {ok, KeyBlocks} ->
+                    Sig = node_signature(Node),
+                    Header = export_header(Node),
+                    Bin = aec_headers:serialize_to_signature_binary(Header),
+                    Test = fun(Key) ->
+                                   check_signature(Sig, Bin, node_miner(Key)) =:= ok
+                           end,
+                    case lists:any(Test, KeyBlocks) of
+                        true -> ok;
+                        false -> internal_error({illegal_orphan, hash(Node)})
+                    end
+            end
+    end.
+
+-define(ALLOWED_HEIGHT_DELTA, 5).
+
+assert_height_delta(Node, State) ->
+    Top       = db_get_node(get_top_block_hash(State)),
+    TopHeight = node_height(Top),
+    Height    = node_height(Node),
+    case Height >= TopHeight - ?ALLOWED_HEIGHT_DELTA of
+        false -> internal_error({too_far_below_top, Height, TopHeight});
+        true -> ok
+    end.
+
 
 %% NG-INFO: micro blocks inherit the height from the last key block
 assert_previous_height(PrevNode, Node) ->
@@ -537,12 +598,18 @@ assert_micro_signature(PrevNode, Node, KeyHash) ->
                 end,
             Bin = aec_headers:serialize_to_signature_binary(export_header(Node)),
             Sig = node_signature(Node),
-            case enacl:sign_verify_detached(Sig, Bin, node_miner(KeyNode)) of
-                {ok, _}    -> ok;
-                {error, _} -> internal_error(signature_verification_failed)
+            case check_signature(Sig, Bin, node_miner(KeyNode)) of
+                ok -> ok;
+                {error, What} -> internal_error(What)
             end;
         false ->
             ok
+    end.
+
+check_signature(Sig, Bin, Miner) ->
+    case enacl:sign_verify_detached(Sig, Bin, Miner) of
+        {ok, _}    -> ok;
+        {error, _} -> {error, signature_verification_failed}
     end.
 
 %% Transitively compute new state trees if

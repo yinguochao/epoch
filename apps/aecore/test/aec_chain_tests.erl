@@ -609,6 +609,7 @@ forking_test_() ->
      , {"Test if hash is in main chain", fun fork_is_in_main_chain/0}
      , {"Get a transaction from the right fork", fun fork_get_transaction/0}
      , {"Fork on micro-block", fun fork_on_micro_block/0}
+     , {"Fork on old fork point", fun fork_on_old_fork_point/0}
      ]}.
 
 fork_on_genesis() ->
@@ -783,6 +784,24 @@ fork_on_micro_block() ->
     {ok, KB3Hash} = aec_blocks:hash_internal_representation(KB3),
     ?assertEqual(KB3Hash, aec_chain:top_block_hash()),
 
+    ok.
+
+fork_on_old_fork_point() ->
+    CommonChain = gen_block_chain_with_state_by_target([?GENESIS_TARGET, ?GENESIS_TARGET], 111),
+    OriginalChain = extend_chain_with_state(CommonChain, [2, 2, 2, 2, 2, 2, 2, 2], 111),
+    ForkChain = extend_chain_with_state(CommonChain, [1], 222),
+    ForkBlock = lists:last(blocks_only_chain(ForkChain)),
+
+    %% Add the original chain
+    ok = write_blocks_to_chain(blocks_only_chain(OriginalChain)),
+
+    %% If we try to add the fork block trough gossip, it should be refused.
+    ?assertMatch({error, {too_far_below_top, _, _}}, insert_block(ForkBlock)),
+
+    %% But if we add it through sync, it is allowed
+    ?assertEqual(ok, insert_block(#{key_block => ForkBlock,
+                                    micro_blocks => [],
+                                    dir => backward})),
     ok.
 
 %%%===================================================================

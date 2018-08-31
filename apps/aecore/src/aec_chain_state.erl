@@ -137,7 +137,7 @@ median_timestamp(Header) ->
 -spec insert_block(aec_blocks:block() | map()) -> 'ok' | {'error', any()}.
 insert_block(#{ key_block := KeyBlock, micro_blocks := MicroBlocks, dir := forward }) ->
     %% First insert key_block
-    case insert_block(KeyBlock) of
+    case insert_block(KeyBlock, sync) of
         ok ->
             lists:foldl(fun(MB, ok) -> insert_block(MB, sync);
                            (_MB, Err = {error, _}) -> Err
@@ -151,7 +151,7 @@ insert_block(#{ key_block := KeyBlock, micro_blocks := MicroBlocks, dir := backw
                         (_MB, Err = {error, _}) -> Err
                      end, ok, MicroBlocks) of
         ok ->
-            insert_block(KeyBlock);
+            insert_block(KeyBlock, sync);
         Err = {error, _} ->
             Err
     end;
@@ -461,6 +461,7 @@ assert_connection_to_chain(Node, micro) ->
             end
     end.
 
+%% TODO: Should this be configurable?
 -define(ALLOWED_HEIGHT_DELTA, 5).
 
 assert_height_delta(Node, State) ->

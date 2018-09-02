@@ -7,6 +7,7 @@
 
 %% API
 -export([from_txs/1,
+         from_tx_hashes/1,
          add_txs/3,
          pad_empty/1,
          root_hash/1
@@ -30,10 +31,14 @@
 %%% API
 %%%===================================================================
 
--spec from_txs([aetx_sign:signed_tx(), ...] | []) -> txs_tree().
+-spec from_tx_hashes([aec_hash:hash()]) -> txs_tree().
+from_tx_hashes([]) ->
+    aeu_mtrees:empty();
+from_tx_hashes(Txs = [_|_]) ->
+    from_tx_hashes(Txs, 0, aeu_mtrees:empty()).
 
+-spec from_txs([aetx_sign:signed_tx()]) -> txs_tree().
 from_txs([]) ->
-    %% NG-INFO: its fine to have empty transaction list (key-block)
     aeu_mtrees:empty();
 from_txs(Txs = [_|_]) ->
     from_txs(Txs, 0, aeu_mtrees:empty()).
@@ -59,5 +64,11 @@ from_txs([],_Position, Tree) ->
     Tree;
 from_txs([SignedTx|Left], Position, Tree) ->
     Key = binary:encode_unsigned(Position),
-    Val = aetx_sign:serialize_to_binary(SignedTx),
+    Val = aetx_sign:hash(SignedTx),
+    from_txs(Left, Position + 1, aeu_mtrees:enter(Key, Val, Tree)).
+
+from_tx_hashes([],_Position, Tree) ->
+    Tree;
+from_tx_hashes([<<_:32/unit:8>> = Val|Left], Position, Tree) ->
+    Key = binary:encode_unsigned(Position),
     from_txs(Left, Position + 1, aeu_mtrees:enter(Key, Val, Tree)).
